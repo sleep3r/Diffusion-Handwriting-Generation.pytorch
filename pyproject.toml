@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "diffusion-handwriting-generation-pytorch"
+version = "0.1.0"
+description = ""
+authors = ["Aleksandr Kalashnikov <sleep3r@icloud.com>"]
+readme = "README.md"
+packages = [{include = "diffusion_handwriting_generation"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.24.2"
+addict = "^2.4.0"
+fire = "^0.5.0"
+ruamel-yaml = "^0.17.21"
+torch = "^1.13.1"
+torchvision = "^0.14.1"
+matplotlib = "^3.6.3"
+opencv-python = "^4.7.0.68"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
