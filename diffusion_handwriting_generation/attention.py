@@ -11,13 +11,13 @@ def get_angles(
     Calculates the angles for the given position and index.
 
     Args:
-        pos (torch.Tensor): Input position with shape (batch_size, sequence_length);
-        i (torch.Tensor): Index of the position;
-        C (int): Maximum number of possible positions;
-        pos_factor (float): Scaling factor for the position. Default is 1.
+        pos (torch.Tensor): input position with shape (batch_size, sequence_length);
+        i (torch.Tensor): index of the position;
+        C (int): maximum number of possible positions;
+        pos_factor (float): scaling factor for the position. Default is 1.
 
     Returns:
-        torch.Tensor: Angles with shape (batch_size, sequence_length).
+        torch.Tensor: angles with shape (batch_size, sequence_length).
     """
     angle_rates = 1 / torch.pow(10000, (2 * (i // 2)) / float(C))
     return pos * angle_rates * pos_factor
@@ -29,11 +29,11 @@ def positional_encoding(position: int, C: int, pos_factor: float = 1) -> torch.T
 
     Args:
         position (int): input position;
-        C (int): Maximum number of possible positions;
-        pos_factor (float, optional): Scaling factor for the position. Default is 1.
+        C (int): maximum number of possible positions;
+        pos_factor (float, optional): scaling factor for the position. Default is 1.
 
     Returns:
-        torch.Tensor: Positional encoding with shape (batch_size, sequence_length, C).
+        torch.Tensor: positional encoding with shape (batch_size, sequence_length, C).
     """
     angle_rads = get_angles(
         torch.arange(position).unsqueeze(1),
@@ -58,13 +58,13 @@ def scaled_dp_attn(
     Calculates dot-product attention between `q` and `k` with scaling, then apply it to `v`.
 
     Args:
-        q (torch.Tensor): Tensor of shape `(batch_size, d_model, seq_len_q)` representing the query;
-        k (torch.Tensor): Tensor of shape `(batch_size, d_model, seq_len_k)` representing the keys;
-        v (torch.Tensor): Tensor of shape `(batch_size, d_model, seq_len_k)` representing the values;
-        mask (Tensor, optional): Tensor of shape `(batch_size, seq_len_q, seq_len_k)` representing the attention mask.
+        q (torch.Tensor): tensor of shape `(batch_size, d_model, seq_len_q)` representing the query;
+        k (torch.Tensor): tensor of shape `(batch_size, d_model, seq_len_k)` representing the keys;
+        v (torch.Tensor): tensor of shape `(batch_size, d_model, seq_len_k)` representing the values;
+        mask (Tensor, optional): tensor of shape `(batch_size, seq_len_q, seq_len_k)` representing the attention mask.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: The weighted sum of `v` with attention weights and the attention weights.
+        Tuple[torch.Tensor, torch.Tensor]: weighted sum of `v` with attention weights and the attention weights.
         The first element has shape `(batch_size, d_model, seq_len_q)` and the second element has shape `(batch_size, seq_len_q, seq_len_k)`.
     """
     # (batch_size, d_model, seq_len_q, seq_len_k)

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://developer-blogs.nvidia.com/wp-content/uploads/2022/04/Generation-with-Diffusion-Models.png" style="height: auto; width: 70%;">
+<img src="https://github.com/sleep3r/Diffusion-Handwriting-Generation.pytorch/raw/main/pic.png" style="height: auto; width: 70%;">
 
 <b>Diffusion Model for Handwriting Generation</b>
 
