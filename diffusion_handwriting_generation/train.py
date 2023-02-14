@@ -1,15 +1,15 @@
+import logging
 import time
 
 import torch
 import torch.nn as nn
 
-from diffusion_handwriting_generation.config import DLConfig, load_config
+from diffusion_handwriting_generation.config import DLConfig, load_config, object_from_dict
 from diffusion_handwriting_generation.dataset import preprocess_data
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionWriter
 from diffusion_handwriting_generation.preprocessing import create_dataset
 from diffusion_handwriting_generation.text_style import StyleExtractor
-from diffusion_handwriting_generation.tokenizer import Tokenizer
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 
@@ -32,100 +32,58 @@ def train_step(x, pen_lifts, text, style_vectors, glob_args):
     return score, att
 
 
-def train(
-    dataset, iterations, model, optimizer, alpha_set, print_every=1000, save_every=10000
-):
+def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
+    model = DiffusionWriter(
+        num_layers=cfg.training_args.num_attlayers,
+        c1=cfg.training_args.channels,
+        c2=cfg.training_args.channels * 3 // 2,
+        c3=cfg.training_args.channels * 2,
+        drop_rate=cfg.training_args.dropout
+    )
+    optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
+
+    strokes, texts, samples = preprocess_data(
+        path="./data/train_strokes.p",
+        max_text_len=cfg.training_args.textlen,
+        max_seq_len=cfg.training_args.seqlen,
+        img_width=cfg.training_args.width,
+        img_height=96
+    )
+
+    style_extractor = StyleExtractor()
+    loader = create_dataset(
+        strokes, texts, samples, style_extractor, cfg.training_args.batchsize, 3000
+    )
+
     s = time.time()
     bce = nn.BCELoss()
     train_loss = []
-    for count, (strokes, text, style_vectors) in enumerate(dataset.repeat(5000)):
+    beta_set = get_beta_set()
+    alpha_set = torch.cumprod(1 - beta_set)
+
+    logger.info(
+        f'Starting train tagger, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
+    )
+    for count, (strokes, text, style_vectors) in enumerate(loader.repeat(5000)):
         strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2:]
         glob_args = model, alpha_set, bce, train_loss, optimizer
-        model_out, att = train_step(strokes, pen_lifts, text, style_vectors, glob_args)
 
-        if (count + 1) % print_every == 0:
-            print(
+        train_step(strokes, pen_lifts, text, style_vectors, glob_args)
+
+        if (count + 1) % cfg.training_args.print_every == 0:
+            logger.info(
                 "Iteration %d, Loss %f, Time %ds"
                 % (count + 1, sum(train_loss) / len(train_loss), time.time() - s)
             )
             train_loss = []
 
-        if (count + 1) % save_every == 0:
+        if (count + 1) % cfg.training_args.save_every == 0:
             save_path = "./weights/model_step%d.pth" % (count + 1)
             torch.save(model.state_dict(), save_path)
 
-        if count >= iterations:
+        if count >= cfg.training_args.steps:
             torch.save(model.state_dict(), "./weights/model.pth")
             break
-
-
-def run(
-    steps: int = 60000,
-    batchsize: int = 96,
-    seqlen: int = 480,
-    textlen: int = 50,
-    width: int = 1400,
-    warmup: int = 10000,
-    dropout: float = 0.0,
-    num_attlayers: int = 2,
-    channels: int = 128,
-    print_every: int = 1000,
-    save_every: int = 10000,
-) -> None:
-    """
-    Trains a model with given hyperparameters.
-
-    Args:
-        steps (int): number of training steps. Defaults to 60000;
-        batchsize (int): batch size. Defaults to 96;
-        seqlen (int): sequence length during training. Defaults to 480;
-        textlen (int): text length during training. Defaults to 50;
-        width (int): offline image width. Defaults to 1400;
-        warmup (int): number of warmup steps. Defaults to 10000;
-        dropout (float): dropout rate. Defaults to 0.0;
-        num_attlayers (int): number of attentional layers at lowest resolution. Defaults to 2;
-        channels (int): number of channels in first layer. Defaults to 128;
-        print_every (int): show train loss every n iters. Defaults to 1000;
-        save_every (int): save checkpoint every n iters. Defaults to 10000.
-    """
-    NUM_STEPS = steps
-    BATCH_SIZE = batchsize
-    MAX_SEQ_LEN = seqlen
-    MAX_TEXT_LEN = textlen
-    WIDTH = width
-    DROP_RATE = dropout
-    NUM_ATTLAYERS = num_attlayers
-    WARMUP_STEPS = warmup
-    PRINT_EVERY = print_every
-    SAVE_EVERY = save_every
-    C1 = channels
-    C2 = C1 * 3 // 2
-    C3 = C1 * 2
-    MAX_SEQ_LEN = MAX_SEQ_LEN - (MAX_SEQ_LEN % 8) + 8
-
-    BUFFER_SIZE = 3000
-    L = 60
-    tokenizer = Tokenizer()
-    beta_set = get_beta_set()
-    alpha_set = torch.cumprod(1 - beta_set)
-
-    style_extractor = StyleExtractor()
-    model = DiffusionWriter(
-        num_layers=NUM_ATTLAYERS, c1=C1, c2=C2, c3=C3, drop_rate=DROP_RATE
-    )
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=0.003
-    )  # beta_1=0.9, beta_2=0.98, clipnorm=100
-
-    path = "./data/train_strokes.p"
-    strokes, texts, samples = preprocess_data(
-        path, MAX_TEXT_LEN, MAX_SEQ_LEN, WIDTH, 96
-    )
-    dataset = create_dataset(
-        strokes, texts, samples, style_extractor, BATCH_SIZE, BUFFER_SIZE
-    )
-
-    train(dataset, NUM_STEPS, model, optimizer, alpha_set, PRINT_EVERY, SAVE_EVERY)
 
 
 def main(cfg: DLConfig) -> None:
@@ -133,7 +91,10 @@ def main(cfg: DLConfig) -> None:
 
     logger.info(f"Config:\n{cfg.pretty_text}\n")
 
-    # train(cfg, meta, logger)
+    try:
+        train(cfg, meta, logger)
+    except KeyboardInterrupt:
+        logger.info("Training interrupted by user.")
 
     log_artifacts(cfg, meta)
 
