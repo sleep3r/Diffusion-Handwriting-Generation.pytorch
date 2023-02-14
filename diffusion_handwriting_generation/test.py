@@ -10,7 +10,7 @@ from diffusion_handwriting_generation.model import DiffusionWriter
 from diffusion_handwriting_generation.preprocessing import read_img
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.tokenizer import Tokenizer
-from diffusion_handwriting_generation.utils.utils import (
+from diffusion_handwriting_generation.utils.helpers import (
     get_beta_set,
     new_diffusion_step,
     show,

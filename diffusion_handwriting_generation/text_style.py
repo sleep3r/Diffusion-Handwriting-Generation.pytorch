@@ -6,55 +6,7 @@ from diffusion_handwriting_generation.attention import (
     MultiHeadAttention,
     positional_encoding,
 )
-
-
-def reshape_up(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
-    """
-    Reshapes the input tensor to have twice as many elements in its second dimension.
-
-    Args:
-        x (torch.Tensor): input tensor to be reshaped;
-        factor (int, optional): factor to scale the second dimension by. Default is 2.
-
-    Returns:
-        torch.Tensor: reshaped tensor.
-    """
-    x_shape = x.shape
-    x = x.view(x_shape[0], x_shape[1] * factor, x_shape[2] // factor)
-    return x
-
-
-def reshape_down(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
-    """
-    Reshapes the input tensor to have half as many elements in its second dimension.
-
-    Args:
-        x (torch.Tensor): input tensor to be reshaped;
-        factor (int, optional): factor to scale the second dimension by. Default is 2.
-
-    Returns:
-        torch.Tensor: reshaped tensor.
-    """
-    x_shape = x.shape
-    x = x.reshape([x_shape[0], x_shape[1] // factor, x_shape[2] * factor])
-    return x
-
-
-def ff_network(C: int, dff: int = 768, act_before: bool = True) -> nn.Sequential:
-    """Builds a feedforward network in PyTorch.
-
-    Args:
-        C (int): The number of output units in the final layer of the network;
-        dff (int, optional): The number of units in the hidden layer. Defaults to 768;
-        act_before (bool, optional): Whether to apply the activation function before the final layer. Defaults to True.
-
-    Returns:
-        nn.Sequential: feedforward network.
-    """
-    ff_layers = [nn.Linear(dff, C), nn.ReLU()]
-    if act_before:
-        ff_layers.insert(0, nn.ReLU())
-    return nn.Sequential(*ff_layers)
+from diffusion_handwriting_generation.utils import ff_network, reshape_up
 
 
 class AffineTransformLayer(nn.Module):

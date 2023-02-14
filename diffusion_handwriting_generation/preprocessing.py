@@ -118,7 +118,7 @@ def read_img(path: str, height: int) -> np.ndarray:
     """
     Loads an image from the given path, removes white spaces and resizes it to the given height.
 
-
+    Args:
         path (str): path to the image;
         height (int): desired height of the image.
 
@@ -166,7 +166,7 @@ def main(
     """
     Main function to run the script.
 
-
+    Args:
         text_path (str, optional): path to text labels, defaults to "./data/ascii-all";
         strokes_path (str, optional): path to stroke xml, defaults to "./data/lineStrokes-all";
         images_path (str, optional): path to line images, defaults to "./data/lineImages-all";

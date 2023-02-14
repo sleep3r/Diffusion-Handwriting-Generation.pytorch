@@ -5,11 +5,12 @@ import torch
 import torch.nn as nn
 
 from diffusion_handwriting_generation.dataset import preprocess_data
-from diffusion_handwriting_generation.model import DiffusionWriter, loss_fn
+from diffusion_handwriting_generation.loss import loss_fn
+from diffusion_handwriting_generation.model import DiffusionWriter
 from diffusion_handwriting_generation.preprocessing import create_dataset
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.tokenizer import Tokenizer
-from diffusion_handwriting_generation.utils.utils import get_alphas, get_beta_set
+from diffusion_handwriting_generation.utils.helpers import get_alphas, get_beta_set
 
 
 def train_step(x, pen_lifts, text, style_vectors, glob_args):
@@ -74,17 +75,17 @@ def main(
     Trains a model with given hyperparameters.
 
     Args:
-        steps (int, optional): number of training steps. Defaults to 60000;
-        batchsize (int, optional): batch size. Defaults to 96;
-        seqlen (int, optional): sequence length during training. Defaults to 480;
-        textlen (int, optional): text length during training. Defaults to 50;
-        width (int, optional): offline image width. Defaults to 1400;
-        warmup (int, optional): number of warmup steps. Defaults to 10000;
-        dropout (float, optional): dropout rate. Defaults to 0.0;
-        num_attlayers (int, optional): number of attentional layers at lowest resolution. Defaults to 2;
-        channels (int, optional): number of channels in first layer. Defaults to 128;
-        print_every (int, optional): show train loss every n iters. Defaults to 1000;
-        save_every (int, optional): save checkpoint every n iters. Defaults to 10000.
+        steps (int): number of training steps. Defaults to 60000;
+        batchsize (int): batch size. Defaults to 96;
+        seqlen (int): sequence length during training. Defaults to 480;
+        textlen (int): text length during training. Defaults to 50;
+        width (int): offline image width. Defaults to 1400;
+        warmup (int): number of warmup steps. Defaults to 10000;
+        dropout (float): dropout rate. Defaults to 0.0;
+        num_attlayers (int): number of attentional layers at lowest resolution. Defaults to 2;
+        channels (int): number of channels in first layer. Defaults to 128;
+        print_every (int): show train loss every n iters. Defaults to 1000;
+        save_every (int): save checkpoint every n iters. Defaults to 10000.
     """
     NUM_STEPS = steps
     BATCH_SIZE = batchsize
