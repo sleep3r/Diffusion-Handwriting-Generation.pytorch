@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/sleep3r/Diffusion-Handwriting-Generation.pytorch/raw/main/pic.png" style="height: auto; width: 70%;">
+<img src="https://raw.githubusercontent.com/sleep3r/Diffusion-Handwriting-Generation.pytorch/main/pic.png" style="height: auto; width: 70%;">
 
 <b>Diffusion Model for Handwriting Generation</b>
 
