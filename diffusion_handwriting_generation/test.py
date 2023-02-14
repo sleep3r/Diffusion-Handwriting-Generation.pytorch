@@ -1,16 +1,16 @@
 import os
 from typing import List
 
-import fire
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
 
+from diffusion_handwriting_generation.config import DLConfig, load_config
 from diffusion_handwriting_generation.model import DiffusionWriter
 from diffusion_handwriting_generation.preprocessing import read_img
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.tokenizer import Tokenizer
-from diffusion_handwriting_generation.utils.helpers import (
+from diffusion_handwriting_generation.utils.nn import (
     get_beta_set,
     new_diffusion_step,
     show,
@@ -79,7 +79,7 @@ def run_batch_inference(
     return x.detach().numpy()
 
 
-def main(
+def run(
     textstring: str,
     writersource: str | None = None,
     name: str | None = None,
@@ -151,5 +151,10 @@ def main(
     )
 
 
+def main(cfg: DLConfig) -> None:
+    pass
+
+
 if __name__ == "__main__":
-    fire.Fire(main)
+    config: DLConfig = load_config()
+    main(config)

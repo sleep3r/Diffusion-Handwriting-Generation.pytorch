@@ -5,8 +5,8 @@ from diffusion_handwriting_generation.text_style import (
     ConvSubLayer,
     DecoderLayer,
     TextStyleEncoder,
-    ff_network,
 )
+from diffusion_handwriting_generation.utils.nn import ff_network
 
 
 def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
@@ -24,6 +24,7 @@ def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
     seq = seq.repeat(1, repeats, 1)
     mask = seq[:, None, None, :]
     return mask
+
 
 class DiffusionWriter(nn.Module):
     def __init__(

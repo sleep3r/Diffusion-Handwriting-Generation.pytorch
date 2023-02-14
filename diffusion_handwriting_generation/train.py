@@ -1,16 +1,17 @@
 import time
 
-import fire
 import torch
 import torch.nn as nn
 
+from diffusion_handwriting_generation.config import DLConfig, load_config
 from diffusion_handwriting_generation.dataset import preprocess_data
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionWriter
 from diffusion_handwriting_generation.preprocessing import create_dataset
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.tokenizer import Tokenizer
-from diffusion_handwriting_generation.utils.helpers import get_alphas, get_beta_set
+from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
+from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 
 
 def train_step(x, pen_lifts, text, style_vectors, glob_args):
@@ -58,7 +59,7 @@ def train(
             break
 
 
-def main(
+def run(
     steps: int = 60000,
     batchsize: int = 96,
     seqlen: int = 480,
@@ -127,5 +128,16 @@ def main(
     train(dataset, NUM_STEPS, model, optimizer, alpha_set, PRINT_EVERY, SAVE_EVERY)
 
 
+def main(cfg: DLConfig) -> None:
+    meta, logger, training = prepare_exp(cfg)
+
+    logger.info(f"Config:\n{cfg.pretty_text}\n")
+
+    # train(cfg, meta, logger)
+
+    log_artifacts(cfg, meta)
+
+
 if __name__ == "__main__":
-    fire.Fire(main)
+    config: DLConfig = load_config()
+    main(config)

@@ -1,0 +1,21 @@
+experiment:
+  name: 'diffusion_handwriting_generation'
+  work_dir: '~/runs'
+
+  seed: 54321
+  precision: 10
+  deterministic: false
+
+
+training_args:
+  steps: 60000
+  batchsize: 96
+  seqlen: 480
+  textlen: 50
+  width: 1400
+  warmup: 10000
+  dropout: 0.0
+  num_attlayers: 2
+  channels: 128
+  print_every: 1000
+  save_every: 10000

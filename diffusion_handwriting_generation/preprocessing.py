@@ -2,9 +2,9 @@ import os
 import pickle
 import random
 
-import fire
 import numpy as np
 
+from diffusion_handwriting_generation.config import DLConfig, load_config
 from diffusion_handwriting_generation.tokenizer import Tokenizer
 
 """
@@ -157,7 +157,7 @@ def create_dataset(formlist, strokes_path, images_path, tokenizer, text_dict, he
     return dataset
 
 
-def main(
+def run(
     text_path: str | None = "./data/ascii-all",
     strokes_path: str | None = "./data/lineStrokes-all",
     images_path: str | None = "./data/lineImages-all",
@@ -203,5 +203,10 @@ def main(
         pickle.dump(test_strokes, f)
 
 
+def main(cfg: DLConfig) -> None:
+    pass
+
+
 if __name__ == "__main__":
-    fire.Fire(main)
+    config: DLConfig = load_config()
+    main(config)
