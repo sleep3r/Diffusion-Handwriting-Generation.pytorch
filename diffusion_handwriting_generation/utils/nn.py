@@ -144,18 +144,38 @@ def reshape_down(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
     return x
 
 
-def ff_network(C: int, dff: int = 768, act_before: bool = True) -> nn.Sequential:
+def ff_network(
+    inp: int, out: int, hidden: int = 768, act_before: bool = True
+) -> nn.Sequential:
     """Builds a feedforward network in PyTorch.
 
     Args:
-        C (int): The number of output units in the final layer of the network;
-        dff (int, optional): The number of units in the hidden layer. Defaults to 768;
-        act_before (bool, optional): Whether to apply the activation function before the final layer. Defaults to True.
+        inp (int): number of input units in the first layer of the network;
+        out (int): number of output units in the final layer of the network;
+        hidden (int): number of units in the hidden layer. Defaults to 768;
+        act_before (bool, optional): whether to apply the activation function before the final layer. Defaults to True.
 
     Returns:
         nn.Sequential: feedforward network.
     """
-    ff_layers = [nn.Linear(dff, C), nn.ReLU()]
+    ff_layers = [nn.Linear(inp, hidden), nn.Linear(hidden, out), nn.ReLU()]
     if act_before:
         ff_layers.insert(0, nn.ReLU())
     return nn.Sequential(*ff_layers)
+
+
+def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
+    """
+    Creates a padding mask for the given sequence tensor.
+
+    Args:
+        seq (torch.Tensor): input sequence tensor with shape (batch_size, sequence_length);
+        repeats (int): number of repetitions of the sequence tensor. Default is 1.
+
+    Returns:
+        torch.Tensor: padding mask with shape (batch_size, 1, 1, sequence_length * repeats).
+    """
+    seq = torch.eq(seq, 0).float()
+    seq = seq.repeat(1, repeats, 1)
+    mask = seq[:, None, :]
+    return mask

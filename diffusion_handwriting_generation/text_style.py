@@ -4,9 +4,9 @@ import torchvision.models as models
 
 from diffusion_handwriting_generation.attention import (
     MultiHeadAttention,
-    positional_encoding,
+    SinusoidalPositionEmbeddings,
 )
-from diffusion_handwriting_generation.utils import ff_network, reshape_up
+from diffusion_handwriting_generation.utils.nn import ff_network, reshape_up
 
 
 class AffineTransformLayer(nn.Module):
@@ -14,8 +14,9 @@ class AffineTransformLayer(nn.Module):
 
     def __init__(self, filters: int):
         super().__init__()
-        self.gamma_emb = nn.Linear(in_features=filters, bias=True)
-        self.beta_emb = nn.Linear(in_features=filters, bias=True)
+
+        self.gamma_emb = nn.Linear(32, filters)  # TODO: 32?
+        self.beta_emb = nn.Linear(32, filters)
 
         self.gamma_emb.bias.data.fill_(1)
 
@@ -36,6 +37,7 @@ class AffineTransformLayer(nn.Module):
 class DecoderLayer(nn.Module):
     def __init__(
         self,
+        d_inp: int,
         d_model: int,
         num_heads: int,
         drop_rate: float = 0.1,
@@ -43,15 +45,19 @@ class DecoderLayer(nn.Module):
     ):
         super().__init__()
 
-        self.text_pe = positional_encoding(2000, d_model, pos_factor=1)
-        self.stroke_pe = positional_encoding(2000, d_model, pos_factor=pos_factor)
+        self.text_pe = SinusoidalPositionEmbeddings(d_model, pos_factor=pos_factor)(
+            torch.arange(2000)
+        )
+        self.stroke_pe = SinusoidalPositionEmbeddings(d_model, pos_factor=pos_factor)(
+            torch.arange(2000)
+        )
         self.drop = nn.Dropout(drop_rate)
         self.lnorm = nn.LayerNorm(d_model, eps=1e-6)
-        self.text_dense = nn.Linear(d_model, d_model)
+        self.text_dense = nn.Linear(d_inp, d_model)
 
         self.mha = MultiHeadAttention(d_model, num_heads)
         self.mha2 = MultiHeadAttention(d_model, num_heads)
-        self.ffn = ff_network(d_model, d_model * 2)
+        self.ffn = ff_network(d_model, d_model, hidden=d_model * 2)
         self.affine0 = AffineTransformLayer(d_model)
         self.affine1 = AffineTransformLayer(d_model)
         self.affine2 = AffineTransformLayer(d_model)
@@ -101,39 +107,43 @@ def get_activation(activation: str = "relu") -> nn.Module:
 
 
 class ConvSubLayer(nn.Module):
+    """
+    Args:
+        filters (int): number of filters;
+        dils (list): dilation rates for Conv1D layers;
+        activation (str): activation function to use;
+        drop_rate (float): dropout rate.
+    """
     def __init__(
         self,
-        filters: int,
+        inp_f: int,
+        out_f: int,
         dils: list = (1, 1),
         activation: str = "swish",
         drop_rate: float = 0.0,
     ):
         super().__init__()
+
         self.act = get_activation(activation)
-        self.affine1 = AffineTransformLayer(filters // 2)
-        self.affine2 = AffineTransformLayer(filters)
-        self.affine3 = AffineTransformLayer(filters)
-        self.conv_skip = nn.Conv1d(filters, 3, padding=1)
-        self.conv1 = nn.Conv1d(filters // 2, 3, dilation=dils[0], padding=1)
-        self.conv2 = nn.Conv1d(filters, 3, dilation=dils[1], padding=1)
-        self.fc = nn.Linear(filters, filters)
+        self.affine1 = AffineTransformLayer(out_f // 2)
+        self.affine2 = AffineTransformLayer(out_f)
+        self.affine3 = AffineTransformLayer(out_f)
+        self.conv_skip = nn.Conv1d(inp_f, out_f, kernel_size=3, padding="same")
+        self.conv1 = nn.Conv1d(
+            inp_f, out_f // 2, kernel_size=3, dilation=dils[0], padding="same"
+        )
+        self.conv2 = nn.Conv1d(
+            out_f // 2, out_f, kernel_size=3, dilation=dils[1], padding="same"
+        )
+        self.fc = nn.Linear(out_f, out_f)
         self.drop = nn.Dropout(drop_rate)
 
-    def forward(self, x, alpha):
-        """
-        Args:
-            filters (int): number of filters;
-            dils (list): dilation rates for Conv1D layers;
-            activation (str): activation function to use;
-            drop_rate (float): dropout rate.
+    def forward(self, x: torch.Tensor, alpha):
+        x_skip = self.conv_skip(x.transpose(2, 1)).transpose(2, 1)
 
-        Returns:
-        - output: Tensor, shape (batch_size, seq_len, filters)
-        """
-        x_skip = self.conv_skip(x)
-        x = self.conv1(self.act(x))
+        x = self.conv1(self.act(x.transpose(2, 1))).transpose(2, 1)
         x = self.drop(self.affine1(x, alpha))
-        x = self.conv2(self.act(x))
+        x = self.conv2(self.act(x.transpose(2, 1))).transpose(2, 1)
         x = self.drop(self.affine2(x, alpha))
         x = self.fc(self.act(x))
         x = self.drop(self.affine3(x, alpha))
@@ -149,11 +159,13 @@ class StyleExtractor(nn.Module):
     """
 
     def __init__(self):
-        super(StyleExtractor, self).__init__()
+        super().__init__()
+
         self.mobilenet = models.mobilenet_v2(pretrained=True, progress=True)
         self.mobilenet.features[0][0].in_channels = 1
         self.local_pool = nn.AvgPool2d(kernel_size=(3, 3), stride=1)
         self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+
         self.freeze_all_layers()
 
     def freeze_all_layers(self):
@@ -182,9 +194,12 @@ class TextStyleEncoder(nn.Module):
     def __init__(self, d_model, d_ff=512):
         super().__init__()
 
+        self.d_model = d_model
+
         self.emb = nn.Embedding(73, d_model)
+        self.style_ffn = ff_network(256, d_model, hidden=d_ff)  # TODO: 256?
         self.text_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1)
-        self.style_ffn = ff_network(d_model, d_ff)
+        self.text_ffn = ff_network(d_model, d_model, hidden=d_model * 2)
         self.mha = MultiHeadAttention(d_model, 8)
         self.layernorm = nn.LayerNorm(d_model, eps=1e-6)
         self.dropout = nn.Dropout(0.3)
@@ -192,13 +207,16 @@ class TextStyleEncoder(nn.Module):
         self.affine2 = AffineTransformLayer(d_model)
         self.affine3 = AffineTransformLayer(d_model)
         self.affine4 = AffineTransformLayer(d_model)
-        self.text_ffn = ff_network(d_model, d_model * 2)
 
     def forward(self, text, style, sigma):
         style = reshape_up(self.dropout(style), 5)
-        style = self.affine1(self.layernorm(self.style_ffn(style)), sigma)
+        style = self.style_ffn(style)
+        style = self.layernorm(style)
+        style = self.affine1(style, sigma)
+
         text = self.emb(text)
-        text = self.affine2(self.layernorm(text), sigma)
+        text = self.layernorm(text)
+        text = self.affine2(text, sigma)
         mha_out, _ = self.mha(text, style, style)
         text = self.affine3(self.layernorm(text + mha_out), sigma)
         text_out = self.affine4(self.layernorm(self.text_ffn(text)), sigma)

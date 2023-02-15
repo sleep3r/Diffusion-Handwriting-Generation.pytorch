@@ -4,7 +4,11 @@ import time
 import torch
 import torch.nn as nn
 
-from diffusion_handwriting_generation.config import DLConfig, load_config, object_from_dict
+from diffusion_handwriting_generation.config import (
+    DLConfig,
+    load_config,
+    object_from_dict,
+)
 from diffusion_handwriting_generation.dataset import preprocess_data
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionWriter
@@ -38,7 +42,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         c1=cfg.training_args.channels,
         c2=cfg.training_args.channels * 3 // 2,
         c3=cfg.training_args.channels * 2,
-        drop_rate=cfg.training_args.dropout
+        drop_rate=cfg.training_args.dropout,
     )
     optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
 
@@ -47,7 +51,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         max_text_len=cfg.training_args.textlen,
         max_seq_len=cfg.training_args.seqlen,
         img_width=cfg.training_args.width,
-        img_height=96
+        img_height=96,
     )
 
     style_extractor = StyleExtractor()
@@ -61,29 +65,32 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     beta_set = get_beta_set()
     alpha_set = torch.cumprod(1 - beta_set)
 
-    logger.info(
-        f'Starting train tagger, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
-    )
-    for count, (strokes, text, style_vectors) in enumerate(loader.repeat(5000)):
-        strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2:]
-        glob_args = model, alpha_set, bce, train_loss, optimizer
+    try:
+        logger.info(
+            f'Starting train tagger, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
+        )
+        for count, (strokes, text, style_vectors) in enumerate(loader.repeat(5000)):
+            strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2:]
+            glob_args = model, alpha_set, bce, train_loss, optimizer
 
-        train_step(strokes, pen_lifts, text, style_vectors, glob_args)
+            train_step(strokes, pen_lifts, text, style_vectors, glob_args)
 
-        if (count + 1) % cfg.training_args.print_every == 0:
-            logger.info(
-                "Iteration %d, Loss %f, Time %ds"
-                % (count + 1, sum(train_loss) / len(train_loss), time.time() - s)
-            )
-            train_loss = []
+            if (count + 1) % cfg.training_args.print_every == 0:
+                logger.info(
+                    "Iteration %d, Loss %f, Time %ds"
+                    % (count + 1, sum(train_loss) / len(train_loss), time.time() - s)
+                )
+                train_loss = []
 
-        if (count + 1) % cfg.training_args.save_every == 0:
-            save_path = "./weights/model_step%d.pth" % (count + 1)
-            torch.save(model.state_dict(), save_path)
+            if (count + 1) % cfg.training_args.save_every == 0:
+                save_path = "./weights/model_step%d.pth" % (count + 1)
+                torch.save(model.state_dict(), save_path)
 
-        if count >= cfg.training_args.steps:
-            torch.save(model.state_dict(), "./weights/model.pth")
-            break
+            if count >= cfg.training_args.steps:
+                torch.save(model.state_dict(), "./weights/model.pth")
+                break
+    except KeyboardInterrupt:
+        logger.info("Training interrupted by user.")
 
 
 def main(cfg: DLConfig) -> None:
@@ -91,10 +98,7 @@ def main(cfg: DLConfig) -> None:
 
     logger.info(f"Config:\n{cfg.pretty_text}\n")
 
-    try:
-        train(cfg, meta, logger)
-    except KeyboardInterrupt:
-        logger.info("Training interrupted by user.")
+    train(cfg, meta, logger)
 
     log_artifacts(cfg, meta)
 

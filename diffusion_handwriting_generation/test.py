@@ -33,7 +33,7 @@ def run_batch_inference(
     """
     Runs batch inference on the input data with the given model.
 
-
+    Args:
         model (torch.nn.Module): model to run inference with;
         beta_set (List[float]): list of diffusion coefficients;
         text (str, List[str]): input text(s) to generate;
@@ -93,7 +93,7 @@ def run(
     """
     Generates text based on a given style.
 
-    Parameters:
+    Args:
         textstring (str): text you want to generate;
         writersource (str, optional): path of the image of the desired writer. Will use a random image from ./assets if not specified. (default: None);
         name (str, optional): path for the generated image. The image will not be saved if not specified. (default: None);

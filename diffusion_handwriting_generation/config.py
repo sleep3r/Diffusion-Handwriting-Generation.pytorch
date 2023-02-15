@@ -35,7 +35,7 @@ class DLConfig:
         return self.__cfg[key]
 
     @classmethod
-    def load(cls, path: PathLike):
+    def load(cls, path: PathLike | str):
         yaml = YAML()
         yaml_config = yaml.load(path)
         return cls(yaml_config)

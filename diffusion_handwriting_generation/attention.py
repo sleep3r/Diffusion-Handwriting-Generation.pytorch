@@ -1,51 +1,26 @@
+import math
 from typing import Tuple
 
 import torch
 import torch.nn as nn
 
 
-def get_angles(
-    pos: torch.Tensor, i: torch.Tensor, C: int, pos_factor: float = 1
-) -> torch.Tensor:
-    """
-    Calculates the angles for the given position and index.
+class SinusoidalPositionEmbeddings(nn.Module):
+    def __init__(self, dim, pos_factor=1.0):
+        super().__init__()
 
-    Args:
-        pos (torch.Tensor): input position with shape (batch_size, sequence_length);
-        i (torch.Tensor): index of the position;
-        C (int): maximum number of possible positions;
-        pos_factor (float): scaling factor for the position. Default is 1.
+        self.dim = dim
+        self.pos_factor = pos_factor
 
-    Returns:
-        torch.Tensor: angles with shape (batch_size, sequence_length).
-    """
-    angle_rates = 1 / torch.pow(10000, (2 * (i // 2)) / float(C))
-    return pos * angle_rates * pos_factor
-
-
-def positional_encoding(position: int, C: int, pos_factor: float = 1) -> torch.Tensor:
-    """
-    Calculates the positional encoding for the given position.
-
-    Args:
-        position (int): input position;
-        C (int): maximum number of possible positions;
-        pos_factor (float, optional): scaling factor for the position. Default is 1.
-
-    Returns:
-        torch.Tensor: positional encoding with shape (batch_size, sequence_length, C).
-    """
-    angle_rads = get_angles(
-        torch.arange(position).unsqueeze(1),
-        torch.arange(C).unsqueeze(0),
-        C,
-        pos_factor=pos_factor,
-    )
-
-    angle_rads[:, :, 0::2] = torch.sin(angle_rads[:, :, 0::2])
-    angle_rads[:, :, 1::2] = torch.cos(angle_rads[:, :, 1::2])
-    pos_encoding = angle_rads[None, ...]
-    return pos_encoding.float()
+    def forward(self, time):
+        device = time.device
+        half_dim = self.dim // 2
+        embeddings = math.log(10000) / (half_dim - 1)
+        embeddings = torch.exp(torch.arange(half_dim, device=device) * -embeddings)
+        embeddings = time[:, None] * embeddings[None, :] * self.pos_factor
+        embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
+        embeddings = embeddings[None, ...]
+        return embeddings
 
 
 def scaled_dp_attn(
@@ -70,7 +45,7 @@ def scaled_dp_attn(
     # (batch_size, d_model, seq_len_q, seq_len_k)
     qk = torch.matmul(q, k.transpose(-2, -1))
     dk = k.size(-1)
-    scaled_qk = qk / torch.sqrt(dk)
+    scaled_qk = qk / math.sqrt(dk)
     if mask is not None:
         scaled_qk += mask * -1e12
 
