@@ -19,31 +19,52 @@ class DiffusionWriter(nn.Module):
     ):
         super().__init__()
 
+        # Input layer
         self.input_dense = nn.Linear(2, c1)
+
+        # Sigma feedforward network
         self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048)
-        self.enc1 = ConvSubLayer(c1, c1, [1, 2])
-        self.enc2 = ConvSubLayer(c1, c2, [1, 2])
-        self.enc3 = DecoderLayer(c2 * 2, c2, 3, drop_rate, pos_factor=4)
-        self.enc4 = ConvSubLayer(c2, c3, [1, 2])
-        self.enc5 = DecoderLayer(c2 * 2, c3, 4, drop_rate, pos_factor=2)
+
+        # Encoder layers
+        self.enc1 = ConvSubLayer(c1, c1, dils=[1, 2])
+        self.enc2 = ConvSubLayer(c1, c2, dils=[1, 2])
+        self.enc3 = DecoderLayer(
+            c2 * 2, c2, num_heads=3, drop_rate=drop_rate, pos_factor=4
+        )
+        self.enc4 = ConvSubLayer(c2, c3, dils=[1, 2])
+        self.enc5 = DecoderLayer(
+            c2 * 2, c3, num_heads=4, drop_rate=drop_rate, pos_factor=2
+        )
+
+        # Pooling and upsampling
         self.pool = nn.AvgPool1d(2)
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
 
+        # Skip connections and text style encoder
         self.skip_conv1 = nn.Conv1d(c1, c2, kernel_size=3, padding="same")
         self.skip_conv2 = nn.Conv1d(c2, c3, kernel_size=3, padding="same")
         self.skip_conv3 = nn.Conv1d(c3, c2 * 2, kernel_size=3, padding="same")
         self.text_style_encoder = TextStyleEncoder(c2 * 2, c2 * 4)
-        self.att_dense = nn.Linear(c1 * 2, c2 * 2)
-        self.att_layers = [
-            DecoderLayer(c2 * 2, c2 * 2, num_heads=6, drop_rate=drop_rate)
-            for _ in range(num_layers)
-        ]
 
-        self.dec3 = ConvSubLayer(c2 * 2, c3, [1, 2])
-        self.dec2 = ConvSubLayer(c3, c2, [1, 1])
-        self.dec1 = ConvSubLayer(c2, c1, [1, 1])
-        self.output_dense = nn.Linear(128, 2)
-        self.pen_lifts_dense = nn.Sequential(nn.Linear(128, 2), nn.Sigmoid())
+        # Attention layers
+        self.att_dense = nn.Linear(c1 * 2, c2 * 2)
+        self.att_layers = nn.ModuleList(
+            [
+                DecoderLayer(c2 * 2, c2 * 2, num_heads=6, drop_rate=drop_rate)
+                for _ in range(num_layers)
+            ]
+        )
+
+        # Decoder layers
+        self.dec3 = ConvSubLayer(c2 * 2, c3, dils=[1, 2])
+        self.dec2 = ConvSubLayer(c3, c2, dils=[1, 1])
+        self.dec1 = ConvSubLayer(c2, c1, dils=[1, 1])
+
+        # Output layer
+        self.output_dense = nn.Linear(c1, 2)
+
+        # Pen lifts layer
+        self.pen_lifts_dense = nn.Sequential(nn.Linear(c1, 2), nn.Sigmoid())
 
     def forward(self, strokes, text, sigma, style_vector):
         """

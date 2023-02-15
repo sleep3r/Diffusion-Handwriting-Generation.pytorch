@@ -9,16 +9,16 @@ experiment:
 
 training_args:
   steps: 60000
-  batchsize: 96
-  seqlen: 480
-  textlen: 50
-  width: 1400
+  batch_size: 96
+  seq_len: 480
+  text_len: 50
+  img_width: 1400
   warmup: 10000
   dropout: 0.0
-  num_attlayers: 2
+  att_layers_num: 2
   channels: 128
-  print_every: 1000
-  save_every: 10000
+  log_freq: 1000
+  save_freq: 10000
 
 
 optimizer:
