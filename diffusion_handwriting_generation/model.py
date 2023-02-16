@@ -82,7 +82,7 @@ class DiffusionModel(nn.Module):
         self.input_dense = nn.Linear(2, c1)
 
         # Sigma feedforward network
-        self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048, act_before=False)
+        self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048)
 
         # Encoder layers
         self.enc1 = ConvBlock(c1, c1, dils=[1, 2])
@@ -135,13 +135,22 @@ class DiffusionModel(nn.Module):
         # Pen lifts layer
         self.pen_lifts_dense = nn.Sequential(nn.Linear(c1, 2), nn.Sigmoid())
 
+    def _pool(self, x):
+        return self.pool(x.transpose(2, 1)).transpose(2, 1)
+
+    def _upsample(self, x):
+        return self.upsample(x.transpose(2, 1)).transpose(2, 1)
+
+    def _skip_conv(self, x, conv):
+        return conv(x.transpose(2, 1)).transpose(2, 1)
+
     def forward(self, strokes, text, sigma, style_vector):
         """
         Args:
             strokes: [B, T, 2]
             text: [B, L]
             sigma: [B, 1, 1]
-            style_vector: [B, 8, 1280]
+            style_vector: [B, N, 1280]
         """
         sigma = self.sigma_ffn(sigma)
         text_mask = create_padding_mask(text)
@@ -149,33 +158,30 @@ class DiffusionModel(nn.Module):
 
         x = self.input_dense(strokes)
         h1 = self.enc1(x, sigma)
-        h2 = self.pool(h1.transpose(2, 1)).transpose(2, 1)
+        h2 = self._pool(h1)
 
         h2 = self.enc2(h2, sigma)
         h2, _ = self.enc3(h2, text, sigma, text_mask)
-        h3 = self.pool(h2.transpose(2, 1)).transpose(2, 1)
+        h3 = self._pool(h2)
 
         h3 = self.enc4(h3, sigma)
         h3, _ = self.enc5(h3, text, sigma, text_mask)
-        x = self.pool(h3.transpose(2, 1)).transpose(2, 1)
+        x = self._pool(h3)
 
         x = self.att_dense(x)
         for att_layer in self.att_layers:
             x, att = att_layer(x, text, sigma, text_mask)
 
-        x = self.upsample(x.transpose(2, 1)).transpose(2, 1) + self.skip_conv3(
-            h3.transpose(2, 1)
-        ).transpose(2, 1)
+        x = self._upsample(x)
+        x += self._skip_conv(h3, self.skip_conv3)
         x = self.dec3(x, sigma)
 
-        x = self.upsample(x.transpose(2, 1)).transpose(2, 1) + self.skip_conv2(
-            h2.transpose(2, 1)
-        ).transpose(2, 1)
+        x = self._upsample(x)
+        x += self._skip_conv(h2, self.skip_conv2)
         x = self.dec2(x, sigma)
 
-        x = self.upsample(x.transpose(2, 1)).transpose(2, 1) + self.skip_conv1(
-            h1.transpose(2, 1)
-        ).transpose(2, 1)
+        x = self._upsample(x)
+        x += self._skip_conv(h1, self.skip_conv1)
         x = self.dec1(x, sigma)
 
         output = self.output_dense(x)
