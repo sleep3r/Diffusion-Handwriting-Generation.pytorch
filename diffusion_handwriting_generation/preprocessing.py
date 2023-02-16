@@ -103,6 +103,7 @@ def preprocess_data(
                 strokes.append(x)
                 texts.append(text)
                 samples.append(sample)
+
     texts = np.array(texts).astype("int32")
     samples = np.array(samples)
     return strokes, texts, samples
@@ -132,8 +133,10 @@ def combine_strokes(x, n):
     # if the pen was picked up in either of the strokes,
     # we pick up the pen for the combined stroke
     s, s_neighbors = x[::2, :2], x[1::2, :2]
+
     if len(x) % 2 != 0:
         s = s[:-1]
+
     values = norms(s) + norms(s_neighbors) - norms(s + s_neighbors)
     ind = np.rt(values)[:n]
     x[ind * 2] += x[ind * 2 + 1]
@@ -148,10 +151,12 @@ def parse_page_text(dir_path, id):
     f = open(dir_path + "/" + id)
     has_started = False
     line_num = -1
+
     for l in f.readlines():
         if "CSR" in l:
             has_started = True
         # the text under 'CSR' is correct, the one labeled under 'OCR' is not
+
         if has_started:
             if line_num > 0:  # there is one space after 'CSR'
                 dict[id[:-4] + "-%02d" % line_num] = l[:-1]
@@ -166,6 +171,7 @@ def create_dict(path):
     dict = {}
     for dir in os.listdir(path):
         dirpath = path + "/" + dir
+
         for subdir in os.listdir(dirpath):
             subdirpath = dirpath + "/" + subdir
             forms = os.listdir(subdirpath)
@@ -178,12 +184,14 @@ def parse_stroke_xml(path):
     xml = xml.readlines()
     strokes = []
     previous = None
+
     for i, l in enumerate(xml):
         if "Point" in l:
             x_ind, y_ind, y_end = l.index("x="), l.index("y="), l.index("time=")
             x = int(l[x_ind + 3 : y_ind - 2])
             y = int(l[y_ind + 3 : y_end - 2])
             is_end = 1.0 if "/Stroke" in xml[i + 1] else 0.0
+
             if previous is None:
                 previous = [x, -y]
             else:
@@ -195,6 +203,7 @@ def parse_stroke_xml(path):
     # currently, a stroke has a 1 if the next stroke is not drawn
     # the pen pickups are shifted by one, so a stroke that is not drawn has a 1
     strokes[:, :2] /= np.std(strokes[:, :2])
+
     for i in range(3):
         strokes = combine_strokes(strokes, int(len(strokes) * 0.2))
     return strokes
@@ -253,8 +262,6 @@ def run(
     height: int | None = 96,
 ) -> None:
     """
-    Main function to run the script.
-
     Args:
         text_path (str, optional): path to text labels, defaults to "./data/ascii-all";
         strokes_path (str, optional): path to stroke xml, defaults to "./data/lineStrokes-all";

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 
-class SinusoidalPositionEmbeddings(nn.Module):
+class PosEmbeddings(nn.Module):
     def __init__(self, dim, pos_factor=1.0):
         super().__init__()
 

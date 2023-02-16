@@ -1,14 +1,66 @@
+import torch
 import torch.nn as nn
 
-from diffusion_handwriting_generation.text_style import (
-    ConvSubLayer,
-    DecoderLayer,
-    TextStyleEncoder,
-)
+from diffusion_handwriting_generation.attention import MultiHeadAttention, PosEmbeddings
+from diffusion_handwriting_generation.cnn import ConvBlock
+from diffusion_handwriting_generation.conditioning import AffineTransformLayer
+from diffusion_handwriting_generation.text_style import TextStyleModel
 from diffusion_handwriting_generation.utils.nn import create_padding_mask, ff_network
 
 
-class DiffusionWriter(nn.Module):
+class DecoderLayer(nn.Module):
+    def __init__(
+        self,
+        d_inp: int,
+        d_out: int,
+        num_heads: int,
+        drop_rate: float = 0.1,
+        pos_factor: float = 1.0,
+    ):
+        super().__init__()
+
+        self.text_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(
+            torch.arange(2000)
+        )
+        self.stroke_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(
+            torch.arange(2000)
+        )
+        self.drop = nn.Dropout(drop_rate)
+        self.lnorm = nn.LayerNorm(d_out, eps=1e-6)
+        self.text_dense = nn.Linear(d_inp, d_out)
+
+        self.act = nn.SiLU()
+
+        self.mha = MultiHeadAttention(d_out, num_heads)
+        self.mha2 = MultiHeadAttention(d_out, num_heads)
+        self.ffn = ff_network(d_out, d_out, hidden=d_out * 2)
+        self.affine0 = AffineTransformLayer(d_out)
+        self.affine1 = AffineTransformLayer(d_out)
+        self.affine2 = AffineTransformLayer(d_out)
+        self.affine3 = AffineTransformLayer(d_out)
+
+    def forward(self, x, text, sigma, text_mask):
+        text = self.text_dense(self.act(text))
+        text = self.affine0(self.lnorm(text), sigma)
+        text_pe = text + self.text_pe[:, : text.size(1)]
+
+        x_pe = x + self.stroke_pe[:, : x.size(1)]
+        x2, att = self.mha(x_pe, text_pe, text, text_mask)
+        x2 = self.lnorm(self.drop(x2))
+        x2 = self.affine1(x2, sigma) + x
+
+        x2_pe = x2 + self.stroke_pe[:, : x2.size(1)]
+        x3, _ = self.mha2(x2_pe, x2_pe, x2)
+        x3 = self.lnorm(x2 + self.drop(x3))
+        x3 = self.affine2(x3, sigma)
+
+        x4 = self.ffn(x3)
+        x4 = self.drop(x4) + x3
+        out = self.affine3(self.lnorm(x4), sigma)
+        return out, att
+
+
+class DiffusionModel(nn.Module):
     def __init__(
         self,
         num_layers: int = 4,
@@ -26,12 +78,12 @@ class DiffusionWriter(nn.Module):
         self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048, act_before=False)
 
         # Encoder layers
-        self.enc1 = ConvSubLayer(c1, c1, dils=[1, 2])
-        self.enc2 = ConvSubLayer(c1, c2, dils=[1, 2])
+        self.enc1 = ConvBlock(c1, c1, dils=[1, 2])
+        self.enc2 = ConvBlock(c1, c2, dils=[1, 2])
         self.enc3 = DecoderLayer(
             c2 * 2, c2, num_heads=3, drop_rate=drop_rate, pos_factor=4
         )
-        self.enc4 = ConvSubLayer(c2, c3, dils=[1, 2])
+        self.enc4 = ConvBlock(c2, c3, dils=[1, 2])
         self.enc5 = DecoderLayer(
             c2 * 2, c3, num_heads=4, drop_rate=drop_rate, pos_factor=2
         )
@@ -44,7 +96,7 @@ class DiffusionWriter(nn.Module):
         self.skip_conv1 = nn.Conv1d(c1, c2, kernel_size=3, padding="same")
         self.skip_conv2 = nn.Conv1d(c2, c3, kernel_size=3, padding="same")
         self.skip_conv3 = nn.Conv1d(c3, c2 * 2, kernel_size=3, padding="same")
-        self.text_style_encoder = TextStyleEncoder(c2 * 2, c2 * 4)
+        self.text_style_model = TextStyleModel(c2 * 2, c2 * 4)
 
         # Attention layers
         self.att_dense = nn.Linear(c1 * 2, c2 * 2)
@@ -56,9 +108,9 @@ class DiffusionWriter(nn.Module):
         )
 
         # Decoder layers
-        self.dec3 = ConvSubLayer(c2 * 2, c3, dils=[1, 2])
-        self.dec2 = ConvSubLayer(c3, c2, dils=[1, 1])
-        self.dec1 = ConvSubLayer(c2, c1, dils=[1, 1])
+        self.dec3 = ConvBlock(c2 * 2, c3, dils=[1, 2])
+        self.dec2 = ConvBlock(c3, c2, dils=[1, 1])
+        self.dec1 = ConvBlock(c2, c1, dils=[1, 1])
 
         # Output layer
         self.output_dense = nn.Linear(c1, 2)
@@ -76,7 +128,7 @@ class DiffusionWriter(nn.Module):
         """
         sigma = self.sigma_ffn(sigma)
         text_mask = create_padding_mask(text)
-        text = self.text_style_encoder(text, style_vector, sigma)
+        text = self.text_style_model(text, style_vector, sigma)
 
         x = self.input_dense(strokes)
         h1 = self.enc1(x, sigma)
