@@ -24,18 +24,40 @@ class ConvBlock(nn.Module):
     ):
         super().__init__()
 
+        # Activation function
         self.act = get_activation(activation)
+
+        # Affine transformation layers
         self.affine1 = AffineTransformLayer(d_out // 2)
         self.affine2 = AffineTransformLayer(d_out)
         self.affine3 = AffineTransformLayer(d_out)
-        self.conv_skip = nn.Conv1d(d_inp, d_out, kernel_size=3, padding="same")
+
+        # Convolutional layers
+        self.conv_skip = nn.Conv1d(
+            d_inp,
+            d_out,
+            kernel_size=3,
+            padding="same",
+        )
         self.conv1 = nn.Conv1d(
-            d_inp, d_out // 2, kernel_size=3, dilation=dils[0], padding="same"
+            d_inp,
+            d_out // 2,
+            kernel_size=3,
+            dilation=dils[0],
+            padding="same",
         )
         self.conv2 = nn.Conv1d(
-            d_out // 2, d_out, kernel_size=3, dilation=dils[1], padding="same"
+            d_out // 2,
+            d_out,
+            kernel_size=3,
+            dilation=dils[1],
+            padding="same",
         )
+
+        # Fully-connected layer
         self.fc = nn.Linear(d_inp, d_out)
+
+        # Dropout layer
         self.drop = nn.Dropout(drop_rate)
 
     def forward(self, x: torch.Tensor, alpha):
@@ -47,5 +69,6 @@ class ConvBlock(nn.Module):
         x = self.drop(self.affine2(x, alpha))
         x = self.fc(self.act(x))
         x = self.drop(self.affine3(x, alpha))
+
         x += x_skip
         return x

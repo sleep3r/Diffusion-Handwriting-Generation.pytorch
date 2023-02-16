@@ -11,6 +11,9 @@ class AffineTransformLayer(nn.Module):
         self.gamma_emb = nn.Linear(32, hidden)  # TODO: 32?
         self.beta_emb = nn.Linear(32, hidden)
 
+        self.init_weights()
+
+    def init_weights(self):
         self.gamma_emb.bias.data.fill_(1)
 
     def forward(self, x: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:

@@ -19,21 +19,32 @@ class DecoderLayer(nn.Module):
     ):
         super().__init__()
 
+        # Activation function
+        self.act = nn.SiLU()
+
+        # Positional embeddings
         self.text_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(
             torch.arange(2000)
         )
         self.stroke_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(
             torch.arange(2000)
         )
+
+        # Dropout layer
         self.drop = nn.Dropout(drop_rate)
+
+        # Layer normalization
         self.lnorm = nn.LayerNorm(d_out, eps=1e-6)
+
+        # Fully-connected layers
         self.text_dense = nn.Linear(d_inp, d_out)
+        self.ffn = ff_network(d_out, d_out, hidden=d_out * 2)
 
-        self.act = nn.SiLU()
-
+        # Multi-head attention
         self.mha = MultiHeadAttention(d_out, num_heads)
         self.mha2 = MultiHeadAttention(d_out, num_heads)
-        self.ffn = ff_network(d_out, d_out, hidden=d_out * 2)
+
+        # Affine transformation layers
         self.affine0 = AffineTransformLayer(d_out)
         self.affine1 = AffineTransformLayer(d_out)
         self.affine2 = AffineTransformLayer(d_out)
