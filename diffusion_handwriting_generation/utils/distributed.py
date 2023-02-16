@@ -1,7 +1,8 @@
 from torch import distributed as dist
 
 
-def get_dist_info():
+def get_dist_info() -> (int, int):
+    """Gets the rank and world size of the current process group."""
     if dist.is_available():
         initialized = dist.is_initialized()
     else:

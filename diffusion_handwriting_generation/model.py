@@ -23,7 +23,7 @@ class DiffusionWriter(nn.Module):
         self.input_dense = nn.Linear(2, c1)
 
         # Sigma feedforward network
-        self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048)
+        self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048, act_before=False)
 
         # Encoder layers
         self.enc1 = ConvSubLayer(c1, c1, dils=[1, 2])

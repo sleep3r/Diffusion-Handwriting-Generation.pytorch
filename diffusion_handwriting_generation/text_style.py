@@ -6,7 +6,7 @@ from diffusion_handwriting_generation.attention import (
     MultiHeadAttention,
     SinusoidalPositionEmbeddings,
 )
-from diffusion_handwriting_generation.utils.nn import ff_network, reshape_up
+from diffusion_handwriting_generation.utils.nn import ff_network, reshape_up, get_activation
 
 
 class AffineTransformLayer(nn.Module):
@@ -84,28 +84,6 @@ class DecoderLayer(nn.Module):
         return out, att
 
 
-def get_activation(activation: str = "relu") -> nn.Module:
-    """
-    Returns an activation function.
-
-    Args:
-        activation (str, optional): activation function. Default is "relu".
-
-    Returns:
-        nn.Module: activation function.
-    """
-    if activation == "relu":
-        return nn.ReLU()
-    elif activation == "swish":
-        return nn.SiLU()
-    elif activation == "gelu":
-        return nn.GELU()
-    elif activation == "tanh":
-        return nn.Tanh()
-    else:
-        raise ValueError("Unknown activation function.")
-
-
 class ConvSubLayer(nn.Module):
     """
     Args:
@@ -114,6 +92,7 @@ class ConvSubLayer(nn.Module):
         activation (str): activation function to use;
         drop_rate (float): dropout rate.
     """
+
     def __init__(
         self,
         inp_f: int,

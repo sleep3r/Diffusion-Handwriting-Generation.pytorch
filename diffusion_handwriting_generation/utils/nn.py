@@ -97,15 +97,15 @@ def new_diffusion_step(
     """
     Performs a single step of the new diffusion process, as described in the paper.
 
-    Parameters:
-    xt (torch.Tensor): input tensor;
-    eps (torch.Tensor): tensor representing epsilon;
-    beta (torch.Tensor): tensor representing beta;
-    alpha (torch.Tensor): tensor representing alpha;
-    alpha_next (torch.Tensor): tensor representing alpha_next.
+    Args:
+        xt (torch.Tensor): input tensor;
+        eps (torch.Tensor): tensor representing epsilon;
+        beta (torch.Tensor): tensor representing beta;
+        alpha (torch.Tensor): tensor representing alpha;
+        alpha_next (torch.Tensor): tensor representing alpha_next.
 
     Returns:
-    torch.Tensor: result of the diffusion step.
+        torch.Tensor: result of the diffusion step.
     """
     x_t_minus1 = (xt - torch.sqrt(1 - alpha) * eps) / torch.sqrt(1 - beta)
     x_t_minus1 += torch.randn(xt.shape) * torch.sqrt(1 - alpha_next)
@@ -179,3 +179,25 @@ def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
     seq = seq.repeat(1, repeats, 1)
     mask = seq[:, None, :]
     return mask
+
+
+def get_activation(activation: str = "relu") -> nn.Module:
+    """
+    Returns an activation function.
+
+    Args:
+        activation (str, optional): activation function. Default is "relu".
+
+    Returns:
+        nn.Module: activation function.
+    """
+    if activation == "relu":
+        return nn.ReLU()
+    elif activation == "swish":
+        return nn.SiLU()
+    elif activation == "gelu":
+        return nn.GELU()
+    elif activation == "tanh":
+        return nn.Tanh()
+    else:
+        raise ValueError("Unknown activation function.")
