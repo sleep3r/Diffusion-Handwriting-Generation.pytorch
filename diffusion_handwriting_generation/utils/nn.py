@@ -179,25 +179,3 @@ def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
     seq = seq.repeat(1, repeats, 1)
     mask = seq[:, None, :]
     return mask
-
-
-def get_activation(activation: str = "relu") -> nn.Module:
-    """
-    Returns an activation function.
-
-    Args:
-        activation (str, optional): activation function. Default is "relu".
-
-    Returns:
-        nn.Module: activation function.
-    """
-    if activation == "relu":
-        return nn.ReLU()
-    elif activation == "swish":
-        return nn.SiLU()
-    elif activation == "gelu":
-        return nn.GELU()
-    elif activation == "tanh":
-        return nn.Tanh()
-    else:
-        raise ValueError("Unknown activation function.")

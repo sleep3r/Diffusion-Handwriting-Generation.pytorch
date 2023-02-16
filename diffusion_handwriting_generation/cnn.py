@@ -2,7 +2,6 @@ import torch
 from torch import nn
 
 from diffusion_handwriting_generation.conditioning import AffineTransformLayer
-from diffusion_handwriting_generation.utils.nn import get_activation
 
 
 class ConvBlock(nn.Module):
