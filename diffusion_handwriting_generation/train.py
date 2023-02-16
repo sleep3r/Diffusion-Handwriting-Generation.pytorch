@@ -6,13 +6,12 @@ import torch.nn as nn
 
 from diffusion_handwriting_generation.config import (
     DLConfig,
-    load_config,
+    config_entrypoint,
     object_from_dict,
 )
-from diffusion_handwriting_generation.dataset import preprocess_data
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionWriter
-from diffusion_handwriting_generation.preprocessing import create_dataset
+from diffusion_handwriting_generation.preprocessing import create_dataset, preprocess_data
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
@@ -104,5 +103,5 @@ def main(cfg: DLConfig) -> None:
 
 
 if __name__ == "__main__":
-    config: DLConfig = load_config()
+    config: DLConfig = config_entrypoint()
     main(config)

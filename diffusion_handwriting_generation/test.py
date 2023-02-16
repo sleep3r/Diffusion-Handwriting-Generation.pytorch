@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import torch
 
-from diffusion_handwriting_generation.config import DLConfig, load_config
+from diffusion_handwriting_generation.config import DLConfig, config_entrypoint
 from diffusion_handwriting_generation.model import DiffusionWriter
 from diffusion_handwriting_generation.preprocessing import read_img
 from diffusion_handwriting_generation.text_style import StyleExtractor
@@ -13,9 +13,9 @@ from diffusion_handwriting_generation.tokenizer import Tokenizer
 from diffusion_handwriting_generation.utils.nn import (
     get_beta_set,
     new_diffusion_step,
-    show,
     standard_diffusion_step,
 )
+from diffusion_handwriting_generation.utils.vis import show
 
 
 def run_batch_inference(
@@ -156,5 +156,5 @@ def main(cfg: DLConfig) -> None:
 
 
 if __name__ == "__main__":
-    config: DLConfig = load_config()
+    config: DLConfig = config_entrypoint()
     main(config)

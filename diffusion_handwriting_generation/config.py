@@ -121,7 +121,7 @@ def object_from_dict(d: Optional[CfgDict], parent=None, **default_kwargs) -> Any
                 )
 
 
-def load_config() -> DLConfig:
+def config_entrypoint() -> DLConfig:
     yaml_config: CommentedMap = fit(
         **Fire(lambda **kwargs: kwargs)
     )  # dirty hack to prevent double print of cfg
