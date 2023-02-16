@@ -55,7 +55,7 @@ class ConvBlock(nn.Module):
         )
 
         # Fully-connected layer
-        self.fc = nn.Linear(d_inp, d_out)
+        self.fc = nn.Linear(d_out, d_out)
 
         # Dropout layer
         self.drop = nn.Dropout(drop_rate)

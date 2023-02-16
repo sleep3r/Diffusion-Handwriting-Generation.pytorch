@@ -59,7 +59,7 @@ class TextStyleEncoder(nn.Module):
         self.text_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1)
 
         # Feed-forward layers
-        self.style_ffn = ff_network(256, d_model, hidden=d_ff)  # TODO: 256?
+        self.style_ffn = ff_network(256, d_model, hidden=d_ff)  # 256: 1280 / 5
         self.text_ffn = ff_network(d_model, d_model, hidden=d_model * 2)
 
         # Attention layer and normalization
