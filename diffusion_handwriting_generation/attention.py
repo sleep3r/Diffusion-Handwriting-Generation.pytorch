@@ -61,10 +61,13 @@ class MultiHeadAttention(nn.Module):
         super().__init__()
 
         self.C = C
+
         self.num_heads = num_heads
+
         self.wq = nn.Linear(C, C)
         self.wk = nn.Linear(C, C)
         self.wv = nn.Linear(C, C)
+
         self.dense = nn.Linear(C, C)
 
     def split_heads(self, x: torch.Tensor, batch_size: int) -> torch.Tensor:

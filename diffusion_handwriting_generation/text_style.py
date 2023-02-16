@@ -46,19 +46,30 @@ class StyleExtractor(nn.Module):
         return x
 
 
-class TextStyleModel(nn.Module):
+class TextStyleEncoder(nn.Module):
     def __init__(self, d_model, d_ff=512):
         super().__init__()
 
         self.d_model = d_model
 
+        # Embedding layer
         self.emb = nn.Embedding(73, d_model)
-        self.style_ffn = ff_network(256, d_model, hidden=d_ff)  # TODO: 256?
+
+        # Text convolutional layer
         self.text_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1)
+
+        # Feed-forward layers
+        self.style_ffn = ff_network(256, d_model, hidden=d_ff)  # TODO: 256?
         self.text_ffn = ff_network(d_model, d_model, hidden=d_model * 2)
+
+        # Attention layer and normalization
         self.mha = MultiHeadAttention(d_model, 8)
         self.layernorm = nn.LayerNorm(d_model, eps=1e-6)
+
+        # Dropout
         self.dropout = nn.Dropout(0.3)
+
+        # Affine layers
         self.affine1 = AffineTransformLayer(d_model)
         self.affine2 = AffineTransformLayer(d_model)
         self.affine3 = AffineTransformLayer(d_model)
@@ -66,6 +77,7 @@ class TextStyleModel(nn.Module):
 
     def forward(self, text, style, sigma):
         style = reshape_up(self.dropout(style), 5)
+
         style = self.style_ffn(style)
         style = self.layernorm(style)
         style = self.affine1(style, sigma)

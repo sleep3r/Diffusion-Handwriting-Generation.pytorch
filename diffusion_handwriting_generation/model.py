@@ -4,11 +4,11 @@ import torch.nn as nn
 from diffusion_handwriting_generation.attention import MultiHeadAttention, PosEmbeddings
 from diffusion_handwriting_generation.cnn import ConvBlock
 from diffusion_handwriting_generation.conditioning import AffineTransformLayer
-from diffusion_handwriting_generation.text_style import TextStyleModel
+from diffusion_handwriting_generation.text_style import TextStyleEncoder
 from diffusion_handwriting_generation.utils.nn import create_padding_mask, ff_network
 
 
-class DecoderLayer(nn.Module):
+class EncoderLayer(nn.Module):
     def __init__(
         self,
         d_inp: int,
@@ -23,12 +23,8 @@ class DecoderLayer(nn.Module):
         self.act = nn.SiLU()
 
         # Positional embeddings
-        self.text_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(
-            torch.arange(2000)
-        )
-        self.stroke_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(
-            torch.arange(2000)
-        )
+        self.text_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(torch.arange(2000))
+        self.stroke_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(torch.arange(2000))
 
         # Dropout layer
         self.drop = nn.Dropout(drop_rate)
@@ -91,29 +87,39 @@ class DiffusionModel(nn.Module):
         # Encoder layers
         self.enc1 = ConvBlock(c1, c1, dils=[1, 2])
         self.enc2 = ConvBlock(c1, c2, dils=[1, 2])
-        self.enc3 = DecoderLayer(
-            c2 * 2, c2, num_heads=3, drop_rate=drop_rate, pos_factor=4
+        self.enc3 = EncoderLayer(
+            c2 * 2,
+            c2,
+            num_heads=3,
+            drop_rate=drop_rate,
+            pos_factor=4,
         )
         self.enc4 = ConvBlock(c2, c3, dils=[1, 2])
-        self.enc5 = DecoderLayer(
-            c2 * 2, c3, num_heads=4, drop_rate=drop_rate, pos_factor=2
+        self.enc5 = EncoderLayer(
+            c2 * 2,
+            c3,
+            num_heads=4,
+            drop_rate=drop_rate,
+            pos_factor=2,
         )
 
         # Pooling and upsampling
         self.pool = nn.AvgPool1d(2)
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
 
-        # Skip connections and text style encoder
+        # Skip convolutions
         self.skip_conv1 = nn.Conv1d(c1, c2, kernel_size=3, padding="same")
         self.skip_conv2 = nn.Conv1d(c2, c3, kernel_size=3, padding="same")
         self.skip_conv3 = nn.Conv1d(c3, c2 * 2, kernel_size=3, padding="same")
-        self.text_style_model = TextStyleModel(c2 * 2, c2 * 4)
+
+        # Text style model
+        self.text_style_model = TextStyleEncoder(c2 * 2, c2 * 4)
 
         # Attention layers
         self.att_dense = nn.Linear(c1 * 2, c2 * 2)
         self.att_layers = nn.ModuleList(
             [
-                DecoderLayer(c2 * 2, c2 * 2, num_heads=6, drop_rate=drop_rate)
+                EncoderLayer(c2 * 2, c2 * 2, num_heads=6, drop_rate=drop_rate)
                 for _ in range(num_layers)
             ]
         )
