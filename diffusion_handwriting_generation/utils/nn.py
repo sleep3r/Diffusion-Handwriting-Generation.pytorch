@@ -124,7 +124,7 @@ def reshape_up(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
         torch.Tensor: reshaped tensor.
     """
     x_shape = x.shape
-    x = x.view(x_shape[0], x_shape[1] * factor, x_shape[2] // factor)
+    x = x.view(x_shape[0], x_shape[1] // factor, x_shape[2] * factor)
     return x
 
 
@@ -140,7 +140,7 @@ def reshape_down(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
         torch.Tensor: reshaped tensor.
     """
     x_shape = x.shape
-    x = x.reshape([x_shape[0], x_shape[1] // factor, x_shape[2] * factor])
+    x = x.reshape([x_shape[0], x_shape[1] * factor, x_shape[2] // factor])
     return x
 
 
@@ -179,25 +179,3 @@ def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
     seq = seq.repeat(1, repeats, 1)
     mask = seq[:, None, :]
     return mask
-
-
-def get_activation(activation: str = "relu") -> nn.Module:
-    """
-    Returns an activation function.
-
-    Args:
-        activation (str, optional): activation function. Default is "relu".
-
-    Returns:
-        nn.Module: activation function.
-    """
-    if activation == "relu":
-        return nn.ReLU()
-    elif activation == "swish":
-        return nn.SiLU()
-    elif activation == "gelu":
-        return nn.GELU()
-    elif activation == "tanh":
-        return nn.Tanh()
-    else:
-        raise ValueError("Unknown activation function.")

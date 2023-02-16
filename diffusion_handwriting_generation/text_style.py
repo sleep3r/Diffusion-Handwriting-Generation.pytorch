@@ -75,14 +75,16 @@ class TextStyleEncoder(nn.Module):
     def forward(self, text, style, sigma):
         style = reshape_up(self.dropout(style), 5)
 
-        style = self.style_ffn(style)
+        style = self.style_ffn(style.transpose(1, 2)).transpose(1, 2)
         style = self.layernorm(style)
         style = self.affine1(style, sigma)
 
         text = self.emb(text)
         text = self.layernorm(text)
         text = self.affine2(text, sigma)
+
         mha_out, _ = self.mha(text, style, style)
         text = self.affine3(self.layernorm(text + mha_out), sigma)
+
         text_out = self.affine4(self.layernorm(self.text_ffn(text)), sigma)
         return text_out

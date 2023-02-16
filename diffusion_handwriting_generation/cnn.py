@@ -60,14 +60,19 @@ class ConvBlock(nn.Module):
         self.drop = nn.Dropout(drop_rate)
 
     def forward(self, x: torch.Tensor, alpha):
-        x_skip = self.conv_skip(x.transpose(2, 1)).transpose(2, 1)
+        x_skip = self.conv_skip(x)
 
-        x = self.conv1(self.act(x.transpose(2, 1))).transpose(2, 1)
-        x = self.drop(self.affine1(x, alpha))
-        x = self.conv2(self.act(x.transpose(2, 1))).transpose(2, 1)
-        x = self.drop(self.affine2(x, alpha))
+        x = self.conv1(self.act(x))
+        x = self.affine1(x, alpha)
+        x = self.drop(x)
+
+        x = self.conv2(self.act(x))
+        x = self.affine2(x, alpha)
+        x = self.drop(x)
+
         x = self.fc(self.act(x))
-        x = self.drop(self.affine3(x, alpha))
+        x = self.affine3(x, alpha)
+        x = self.drop(x)
 
         x += x_skip
         return x
