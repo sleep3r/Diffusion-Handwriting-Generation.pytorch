@@ -28,7 +28,7 @@ class StyleExtractor(nn.Module):
         for param in self.mobilenet.parameters():
             param.requires_grad = False
 
-    def forward(self, img: torch.Tensor) -> torch.Tensor:
+    def forward(self, img) -> torch.Tensor:
         """
         Args:
             img (torch.Tensor): tensor of shape (batch_size, 1, 224, 224).
@@ -54,9 +54,6 @@ class TextStyleEncoder(nn.Module):
 
         # Embedding layer
         self.emb = nn.Embedding(73, d_model)
-
-        # Text convolutional layer
-        self.text_conv = nn.Conv1d(d_model, d_model, kernel_size=3, padding=1)
 
         # Feed-forward layers
         self.style_ffn = ff_network(256, d_model, hidden=d_ff)  # 256: 1280 / 5

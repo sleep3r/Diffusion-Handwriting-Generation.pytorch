@@ -19,13 +19,12 @@ class ConvBlock(nn.Module):
         d_inp: int,
         d_out: int,
         dils: list = (1, 1),
-        activation: str = "swish",
         drop_rate: float = 0.0,
     ):
         super().__init__()
 
         # Activation function
-        self.act = get_activation(activation)
+        self.act = nn.SiLU()
 
         # Affine transformation layers
         self.affine1 = AffineTransformLayer(d_out // 2)
