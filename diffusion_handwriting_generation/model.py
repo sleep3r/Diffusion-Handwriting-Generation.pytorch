@@ -85,8 +85,8 @@ class DiffusionModel(nn.Module):
         self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048)
 
         # Encoder layers
-        self.enc1 = ConvBlock(c1, c1, dils=[1, 2])
-        self.enc2 = ConvBlock(c1, c2, dils=[1, 2])
+        self.enc1 = ConvBlock(c1, c1, dils=(1, 2))
+        self.enc2 = ConvBlock(c1, c2, dils=(1, 2))
         self.enc3 = EncoderLayer(
             c2 * 2,
             c2,
@@ -94,7 +94,7 @@ class DiffusionModel(nn.Module):
             drop_rate=drop_rate,
             pos_factor=4,
         )
-        self.enc4 = ConvBlock(c2, c3, dils=[1, 2])
+        self.enc4 = ConvBlock(c2, c3, dils=(1, 2))
         self.enc5 = EncoderLayer(
             c2 * 2,
             c3,
@@ -125,9 +125,9 @@ class DiffusionModel(nn.Module):
         )
 
         # Decoder layers
-        self.dec3 = ConvBlock(c2 * 2, c3, dils=[1, 2])
-        self.dec2 = ConvBlock(c3, c2, dils=[1, 1])
-        self.dec1 = ConvBlock(c2, c1, dils=[1, 1])
+        self.dec3 = ConvBlock(c2 * 2, c3, dils=(1, 2))
+        self.dec2 = ConvBlock(c3, c2, dils=(1, 1))
+        self.dec1 = ConvBlock(c2, c1, dils=(1, 1))
 
         # Output layer
         self.output_dense = nn.Linear(c1, 2)
@@ -135,13 +135,13 @@ class DiffusionModel(nn.Module):
         # Pen lifts layer
         self.pen_lifts_dense = nn.Sequential(nn.Linear(c1, 2), nn.Sigmoid())
 
-    def _pool(self, x):
+    def _pool(self, x: torch.Tensor) -> torch.Tensor:
         return self.pool(x.transpose(2, 1)).transpose(2, 1)
 
-    def _upsample(self, x):
+    def _upsample(self, x: torch.Tensor) -> torch.Tensor:
         return self.upsample(x.transpose(2, 1)).transpose(2, 1)
 
-    def _skip_conv(self, x, conv):
+    def _skip_conv(self, x: torch.Tensor, conv: nn.Conv1d) -> torch.Tensor:
         return conv(x.transpose(2, 1)).transpose(2, 1)
 
     def forward(self, strokes, text, sigma, style_vector):

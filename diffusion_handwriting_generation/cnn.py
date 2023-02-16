@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 from torch import nn
 
@@ -7,9 +9,9 @@ from diffusion_handwriting_generation.conditioning import AffineTransformLayer
 class ConvBlock(nn.Module):
     """
     Args:
-        filters (int): number of filters;
-        dils (list): dilation rates for Conv1D layers;
-        activation (str): activation function to use;
+        d_inp (int): number of input channels;
+        d_out (int): number of output channels;
+        dils (Tuple[int, int]): dilation rates for Conv1D layers;
         drop_rate (float): dropout rate.
     """
 
@@ -17,7 +19,7 @@ class ConvBlock(nn.Module):
         self,
         d_inp: int,
         d_out: int,
-        dils: list = (1, 1),
+        dils: Tuple[int, int] = (1, 1),
         drop_rate: float = 0.0,
     ):
         super().__init__()
@@ -58,13 +60,18 @@ class ConvBlock(nn.Module):
         # Dropout layer
         self.drop = nn.Dropout(drop_rate)
 
-    def forward(self, x: torch.Tensor, alpha):
-        x_skip = self.conv_skip(x.transpose(2, 1)).transpose(2, 1)
+    def _conv(self, x: torch.Tensor, conv: nn.Conv1d) -> torch.Tensor:
+        return conv(x.transpose(2, 1)).transpose(2, 1)
 
-        x = self.conv1(self.act(x.transpose(2, 1))).transpose(2, 1)
+    def forward(self, x: torch.Tensor, alpha: torch.Tensor):
+        x_skip = self._conv(x, self.conv_skip)
+
+        x = self._conv(x, self.conv1)
         x = self.drop(self.affine1(x, alpha))
-        x = self.conv2(self.act(x.transpose(2, 1))).transpose(2, 1)
+
+        x = self._conv(x, self.conv2)
         x = self.drop(self.affine2(x, alpha))
+
         x = self.fc(self.act(x))
         x = self.drop(self.affine3(x, alpha))
 
