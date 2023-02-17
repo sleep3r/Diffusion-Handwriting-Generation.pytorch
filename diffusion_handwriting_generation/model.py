@@ -141,7 +141,7 @@ class DiffusionModel(nn.Module):
     def _upsample(self, x: torch.Tensor) -> torch.Tensor:
         return self.upsample(x.transpose(2, 1)).transpose(2, 1)
 
-    def _skip_conv(self, x: torch.Tensor, conv: nn.Conv1d) -> torch.Tensor:
+    def _conv(self, x: torch.Tensor, conv: nn.Conv1d) -> torch.Tensor:
         return conv(x.transpose(2, 1)).transpose(2, 1)
 
     def forward(self, strokes, text, sigma, style_vector):
@@ -173,15 +173,15 @@ class DiffusionModel(nn.Module):
             x, att = att_layer(x, text, sigma, text_mask)
 
         x = self._upsample(x)
-        x += self._skip_conv(h3, self.skip_conv3)
+        x += self._conv(h3, self.skip_conv3)
         x = self.dec3(x, sigma)
 
         x = self._upsample(x)
-        x += self._skip_conv(h2, self.skip_conv2)
+        x += self._conv(h2, self.skip_conv2)
         x = self.dec2(x, sigma)
 
         x = self._upsample(x)
-        x += self._skip_conv(h1, self.skip_conv1)
+        x += self._conv(h1, self.skip_conv1)
         x = self.dec1(x, sigma)
 
         output = self.output_dense(x)
