@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.tokenizer import Tokenizer
 from diffusion_handwriting_generation.utils.io import (
     parse_lines_txt,
@@ -22,19 +23,22 @@ class IAMDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
+        kind: Literal["train", "val", "test"] = "train",
         img_height: int = 96,
         img_width: int = 1500,
         max_text_len: int = 50,
         max_seq_len: int = 500,
         splits_file: PathLike | str = "splits.json",
-        kind: Literal["train", "val", "test"] = "train",
+        max_files: int | None = None,
     ):
         self.data_path = Path(data_dir)
+        self.kind = kind
         self.img_height = img_height
         self.img_width = img_width
         self.max_text_len = max_text_len
         self.max_seq_len = max_seq_len
-        self.kind = kind
+
+        self.max_files = max_files
 
         self.ascii_dir = self.data_path / "ascii"
         self.img_path = self.data_path / "lineImages"
@@ -44,6 +48,7 @@ class IAMDataset(Dataset):
             self.splits = json.load(f)
 
         self.tokenizer = Tokenizer()
+        self.style_extractor = StyleExtractor()
 
         self.__init_dataset()
 
@@ -51,10 +56,10 @@ class IAMDataset(Dataset):
         return len(self.dataset)
 
     @property
-    def dataset(self):
+    def dataset(self) -> list[dict]:
         return self._dataset
 
-    def __init_dataset(self):
+    def __init_dataset(self) -> None:
         dataset = []
 
         for f in tqdm(self.splits[self.kind]):
@@ -64,38 +69,46 @@ class IAMDataset(Dataset):
             text_dict = parse_lines_txt(self.ascii_dir / f[:3] / f[:7] / f"{f}.txt")
 
             for sample, text in text_dict.items():
-                if len(text) < self.max_text_len:
-                    raw_text = copy.deepcopy(text)
+                if len(text) > self.max_text_len:
+                    continue
 
-                    strokes = parse_strokes_xml(strokes_path / f"{sample}.xml")
-                    strokes = pad_stroke_seq(strokes, maxlength=self.max_seq_len)
+                raw_text = copy.deepcopy(text)
 
-                    text = self.tokenizer.encode(text)
-                    zeros_text = np.zeros((self.max_text_len - len(text),))
-                    text = np.concatenate((text, zeros_text))
+                strokes = parse_strokes_xml(strokes_path / f"{sample}.xml")
+                strokes = pad_stroke_seq(strokes, maxlength=self.max_seq_len)
 
-                    img = read_img(img_path / f"{sample}.tif", self.img_height)
+                text = self.tokenizer.encode(text)
+                zeros_text = np.zeros((self.max_text_len - len(text),))
+                text = np.concatenate((text, zeros_text))
 
-                    if strokes is not None and img.shape[1] < self.img_width:
-                        img = pad_img(img, self.img_width, self.img_height)
+                img = read_img(img_path / f"{sample}.tif", self.img_height)
 
-                        dataset.append(
-                            {
-                                "sample": sample,
-                                "strokes": strokes,
-                                "text": text,
-                                "image": img,
-                                "raw_text": raw_text,
-                            }
-                        )
+                if strokes is not None and img.shape[1] < self.img_width:
+                    img = pad_img(img, self.img_width, self.img_height)
+                    style = self.style_extractor(img[None, None, :])
+
+                    dataset.append(
+                        {
+                            "sample": sample,
+                            "strokes": strokes,
+                            "text": text,
+                            "image": img,
+                            "style": style,
+                            "raw_text": raw_text,
+                        }
+                    )
+
+                    if self.max_files and len(dataset) >= self.max_files:
+                        self._dataset = dataset
+                        return
 
         self._dataset = dataset
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         return {
-            "strokes": self.dataset[idx]["strokes"],
-            "text": self.dataset[idx]["text"],
-            "image": self.dataset[idx]["image"],
+            "strokes": torch.FloatTensor(self.dataset[idx]["strokes"]),
+            "text": torch.IntTensor(self.dataset[idx]["text"]),
+            "style": self.dataset[idx]["style"],
         }
 
 

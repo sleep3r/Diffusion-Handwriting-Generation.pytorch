@@ -1,22 +1,4 @@
-import os
-import pickle
-import random
-
 import numpy as np
-
-from diffusion_handwriting_generation.config import DLConfig, config_entrypoint
-from diffusion_handwriting_generation.tokenizer import Tokenizer
-
-"""
-Creates the online and offline dataset for training
-Before running this script, download the following things from 
-https://fki.tic.heia-fr.ch/databases/download-the-iam-on-line-handwriting-database
-data/lineStrokes-all.tar.gz   -   the stroke xml for the online dataset
-data/lineImages-all.tar.gz    -   the images for the offline dataset
-ascii-all.tar.gz              -   the text labels for the dataset
-extract these contents and put them in the ./data directory (unless otherwise specified)
-they should have the same names, e.g. "lineStrokes-all" (unless otherwise specified)
-"""
 
 
 def pad_stroke_seq(x: np.ndarray, maxlength: int) -> np.ndarray | None:
@@ -77,13 +59,3 @@ def remove_whitespace(img, thresh, remove_middle=False):
     else:
         rows, cols = rows[0], cols[0]
         return img[rows[0] : rows[-1], cols[0] : cols[-1]]
-
-
-
-def main(cfg: DLConfig) -> None:
-    pass
-
-
-if __name__ == "__main__":
-    config: DLConfig = config_entrypoint()
-    main(config)

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.models as models
@@ -17,8 +18,9 @@ class StyleExtractor(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.mobilenet = models.mobilenet_v2(pretrained=True, progress=True)
-        self.mobilenet.features[0][0].in_channels = 1
+        self.mobilenet = models.mobilenet_v2(
+            weights=models.MobileNet_V2_Weights.DEFAULT, progress=True
+        )
         self.local_pool = nn.AvgPool2d(kernel_size=(3, 3), stride=1)
         self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
 
@@ -28,17 +30,19 @@ class StyleExtractor(nn.Module):
         for param in self.mobilenet.parameters():
             param.requires_grad = False
 
-    def forward(self, img) -> torch.Tensor:
+    def forward(self, img_batch: np.ndarray) -> torch.Tensor:
         """
         Args:
-            img (torch.Tensor): tensor of shape (batch_size, 1, 224, 224).
+            img_batch (np.ndarray): tensor of shape (batch_size, 1, H, W).
 
         Returns:
             torch.Tensor: tensor of shape (batch_size, 1280).
         """
-        x = torch.tensor(img, dtype=torch.float32)
+        x = torch.tensor(img_batch, dtype=torch.float32)
+
         x = (x / 127.5) - 1
         x = torch.cat((x, x, x), dim=1)
+
         x = self.mobilenet.features(x)
         x = self.local_pool(x)
         x = self.global_avg_pool(x)
