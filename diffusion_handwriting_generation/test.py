@@ -7,7 +7,7 @@ import torch
 
 from diffusion_handwriting_generation.config import DLConfig, config_entrypoint
 from diffusion_handwriting_generation.model import DiffusionWriter
-from diffusion_handwriting_generation.preprocessing import read_img
+from diffusion_handwriting_generation.utils.preprocessing import read_img
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.tokenizer import Tokenizer
 from diffusion_handwriting_generation.utils.nn import (

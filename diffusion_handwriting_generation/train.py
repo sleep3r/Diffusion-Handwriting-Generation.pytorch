@@ -10,8 +10,8 @@ from diffusion_handwriting_generation.config import (
     object_from_dict,
 )
 from diffusion_handwriting_generation.loss import loss_fn
-from diffusion_handwriting_generation.model import DiffusionWriter
-from diffusion_handwriting_generation.preprocessing import create_dataset, preprocess_data
+from diffusion_handwriting_generation.model import DiffusionModel
+from diffusion_handwriting_generation.utils.preprocessing import create_dataset, preprocess_data
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
@@ -36,7 +36,7 @@ def train_step(x, pen_lifts, text, style_vectors, glob_args):
 
 
 def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
-    model = DiffusionWriter(
+    model = DiffusionModel(
         num_layers=cfg.training_args.num_attlayers,
         c1=cfg.training_args.channels,
         c2=cfg.training_args.channels * 3 // 2,

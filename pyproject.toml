@@ -20,6 +20,7 @@ jupyter = "^1.0.0"
 gitpython = "^3.1.30"
 pandas = "^1.5.3"
 pytest = "^7.2.1"
+tqdm = "^4.64.1"
 
 
 [build-system]
