@@ -9,10 +9,9 @@ from diffusion_handwriting_generation.config import (
     config_entrypoint,
     object_from_dict,
 )
+from diffusion_handwriting_generation.dataset import IAMDataset
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionModel
-from diffusion_handwriting_generation.utils.preprocessing import create_dataset, preprocess_data
-from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 
@@ -45,17 +44,32 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     )
     optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
 
-    strokes, texts, samples = preprocess_data(
-        path="./data/train_strokes.p",
-        max_text_len=cfg.training_args.textlen,
-        max_seq_len=cfg.training_args.seqlen,
-        img_width=cfg.training_args.width,
-        img_height=96,
+    train_dataset = IAMDataset(
+        data_dir=cfg.experiment.data_dir,
+        kind="train",
+        splits_file=cfg.experiment.splits_file,
+        **cfg.experiment.dataset_args,
+    )
+    valid_dataset = IAMDataset(
+        data_dir=cfg.experiment.data_dir,
+        kind="validation",
+        splits_file=cfg.experiment.splits_file,
+        **cfg.experiment.dataset_args,
     )
 
-    style_extractor = StyleExtractor()
-    loader = create_dataset(
-        strokes, texts, samples, style_extractor, cfg.training_args.batchsize, 3000
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=cfg.training_args.batch_size,
+        shuffle=True,
+        num_workers=cfg.training_args.num_workers,
+        pin_memory=True,
+    )
+    valid_loader = torch.utils.data.DataLoader(
+        valid_dataset,
+        batch_size=cfg.training_args.batch_size,
+        shuffle=False,
+        num_workers=cfg.training_args.num_workers,
+        pin_memory=True,
     )
 
     s = time.time()
@@ -68,7 +82,12 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         logger.info(
             f'Starting train tagger, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
         )
-        for count, (strokes, text, style_vectors) in enumerate(loader.repeat(5000)):
+        for count, batch in enumerate(train_loader):
+            strokes, text, style_vectors = (
+                batch["strokes"],
+                batch["text"],
+                batch["style"],
+            )
             strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2:]
             glob_args = model, alpha_set, bce, train_loss, optimizer
 

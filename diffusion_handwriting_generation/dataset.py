@@ -23,7 +23,7 @@ class IAMDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        kind: Literal["train", "val", "test"] = "train",
+        kind: Literal["train", "validation", "test"] = "train",
         img_height: int = 96,
         img_width: int = 1500,
         max_text_len: int = 50,

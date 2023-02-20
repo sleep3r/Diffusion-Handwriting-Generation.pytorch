@@ -1,22 +1,29 @@
 experiment:
   name: 'diffusion_handwriting_generation'
   work_dir: '~/runs'
+  data_dir: '~/data'
+  splits_file: '~/data/splits.json'
 
   seed: 54321
   precision: 10
   deterministic: false
 
+dataset_args:
+  max_seq_len: 480
+  max_text_len: 50
+  img_height: 90
+  img_width: 1400
 
 training_args:
   steps: 60000
   batch_size: 96
-  seq_len: 480
-  text_len: 50
-  img_width: 1400
+  num_workers: 4
+
   warmup: 10000
   dropout: 0.0
   att_layers_num: 2
   channels: 128
+
   log_freq: 1000
   save_freq: 10000
 
