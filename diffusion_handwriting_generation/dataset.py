@@ -69,7 +69,7 @@ class IAMDataset(Dataset):
             text_dict = parse_lines_txt(self.ascii_dir / f[:3] / f[:7] / f"{f}.txt")
 
             for sample, text in text_dict.items():
-                if len(text) > self.max_text_len:
+                if len(text) >= self.max_text_len:
                     continue
 
                 raw_text = copy.deepcopy(text)

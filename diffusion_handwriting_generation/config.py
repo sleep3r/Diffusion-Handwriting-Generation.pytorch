@@ -77,12 +77,12 @@ def fit(**kwargs) -> CommentedMap:
     """
     yaml = YAML()
 
-    with open("./ocr_ner_train/configs/base.yml", "r") as f:
+    with open("./diffusion_handwriting_generation/configs/base.yml", "r") as f:
         base_config = yaml.load(f)
 
     if "config" in kwargs:
         cfg_name = kwargs.pop("config")
-        with open(f"./ocr_ner_train/configs/{cfg_name}", "r") as f:
+        with open(f"./diffusion_handwriting_generation/configs/{cfg_name}", "r") as f:
             cfg_yaml = yaml.load(f)
 
         merged_cfg = update_config(base_config, cfg_yaml)

@@ -1,8 +1,8 @@
 experiment:
   name: 'diffusion_handwriting_generation'
-  work_dir: '~/runs'
-  data_dir: '~/data'
-  splits_file: '~/data/splits.json'
+  work_dir: '/Users/20227685/Desktop/IAM/runs'
+  data_dir: '/Users/20227685/Desktop/IAM/data'
+  splits_file: './data/splits.json'
 
   seed: 54321
   precision: 10

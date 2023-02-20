@@ -36,7 +36,7 @@ def train_step(x, pen_lifts, text, style_vectors, glob_args):
 
 def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     model = DiffusionModel(
-        num_layers=cfg.training_args.num_attlayers,
+        num_layers=cfg.training_args.att_layers_num,
         c1=cfg.training_args.channels,
         c2=cfg.training_args.channels * 3 // 2,
         c3=cfg.training_args.channels * 2,
@@ -44,31 +44,19 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     )
     optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
 
+    logger.info("Loading data...")
     train_dataset = IAMDataset(
         data_dir=cfg.experiment.data_dir,
         kind="train",
         splits_file=cfg.experiment.splits_file,
-        **cfg.experiment.dataset_args,
-    )
-    valid_dataset = IAMDataset(
-        data_dir=cfg.experiment.data_dir,
-        kind="validation",
-        splits_file=cfg.experiment.splits_file,
-        **cfg.experiment.dataset_args,
+        **cfg.dataset_args,
     )
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=cfg.training_args.batch_size,
+        num_workers=cfg.training_args.num_workers,
         shuffle=True,
-        num_workers=cfg.training_args.num_workers,
-        pin_memory=True,
-    )
-    valid_loader = torch.utils.data.DataLoader(
-        valid_dataset,
-        batch_size=cfg.training_args.batch_size,
-        shuffle=False,
-        num_workers=cfg.training_args.num_workers,
         pin_memory=True,
     )
 
@@ -88,7 +76,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 batch["text"],
                 batch["style"],
             )
-            strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2:]
+            strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
             glob_args = model, alpha_set, bce, train_loss, optimizer
 
             train_step(strokes, pen_lifts, text, style_vectors, glob_args)
@@ -112,7 +100,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
 
 
 def main(cfg: DLConfig) -> None:
-    meta, logger, training = prepare_exp(cfg)
+    meta, logger = prepare_exp(cfg)
 
     logger.info(f"Config:\n{cfg.pretty_text}\n")
 
