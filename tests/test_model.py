@@ -11,9 +11,11 @@ def test_forward_pass():
 
     model = DiffusionModel(nlayers, C1, C2, C3)
 
-    strokes = torch.rand(1, 400, 2)
-    text = (torch.rand(1, 40) < 0.25).int()
-    sigma = torch.rand(1, 1)
-    style_vector = torch.rand(1, 14, 1280)
+    BS = 8
+
+    strokes = torch.rand(BS, 400, 2)
+    text = (torch.rand(BS, 40) < 0.25).int()
+    sigma = torch.rand(BS, 1)
+    style_vector = torch.rand(BS, 1, 1280)
 
     model(strokes, text, sigma, style_vector)

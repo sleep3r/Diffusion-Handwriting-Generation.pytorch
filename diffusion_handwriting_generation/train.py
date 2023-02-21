@@ -27,8 +27,6 @@ def train_step(x, pen_lifts, text, style_vectors, glob_args):
         + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
     )
 
-    print(torch.sqrt(alphas).shape, "<-----")
-
     optimizer.zero_grad()
     score, pl_pred, att = model(x_perturbed, text, torch.sqrt(alphas), style_vectors)
     loss = loss_fn(eps, score, pen_lifts, pl_pred, alphas, bce)

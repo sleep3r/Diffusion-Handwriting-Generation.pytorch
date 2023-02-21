@@ -178,6 +178,6 @@ def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
         torch.Tensor: padding mask with shape (batch_size, 1, 1, sequence_length * repeats).
     """
     seq = torch.eq(seq, 0).float()
-    seq = seq.repeat(1, repeats, 1)
-    mask = seq[:, None, :]
+    seq = seq.unsqueeze(1).unsqueeze(2)
+    mask = seq.repeat(1, 1, 1, repeats)
     return mask
