@@ -16,7 +16,7 @@ dataset_args:
 
 training_args:
   steps: 60000
-  batch_size: 96
+  batch_size: 10
   num_workers: 4
 
   warmup: 10000

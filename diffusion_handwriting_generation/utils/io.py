@@ -68,6 +68,15 @@ def parse_strokes_xml(xml_path: PathLike | str) -> np.ndarray:
 
 
 def parse_lines_txt(ascii_file: Path) -> dict:
+    """
+    Parses an ASCII lines file from the IAM Handwriting Database.
+
+    Args:
+        ascii_file (Path): path to the ASCII lines file.
+
+    Returns:
+        dict: dictionary with the line ID as key and the text as value.
+    """
     texts = {}
     has_started = False
     lines_num = -1
@@ -106,3 +115,33 @@ def read_img(path: PathLike | str, height: int) -> np.ndarray:
     h, w = img.shape
     img = cv2.resize(img, (height * w // h, height), interpolation=cv2.INTER_CUBIC)
     return img
+
+
+def combine_strokes(x: np.ndarray, n: int) -> np.ndarray:
+    """
+    Consecutive stroke vectors who point in similar directions are summed
+    if the pen was picked up in either of the strokes,
+    we pick up the pen for the combined stroke.
+
+    Args:
+        x (np.ndarray): strokes;
+        n (int): number of strokes to combine.
+
+    Returns:
+        np.ndarray: combined strokes.
+    """
+    norms = lambda x: np.linalg.norm(x, axis=1)
+
+    s, s_neighbors = x[::2, :2], x[1::2, :2]
+
+    if len(x) % 2 != 0:
+        s = s[:-1]
+
+    values = norms(s) + norms(s_neighbors) - norms(s + s_neighbors)
+    ind = np.argsort(values)[:n]
+
+    x[ind * 2] += x[ind * 2 + 1]
+    x[ind * 2, 2] = np.greater(x[ind * 2, 2], 0)
+    x = np.delete(x, ind * 2 + 1, axis=0)
+    x[:, :2] /= np.std(x[:, :2])
+    return x

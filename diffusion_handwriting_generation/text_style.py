@@ -77,6 +77,10 @@ class TextStyleEncoder(nn.Module):
         self.affine4 = AffineTransformLayer(d_model)
 
     def forward(self, text, style, sigma):
+        print(text.shape)
+        print(style.shape)
+        print(sigma.shape)
+
         style = reshape_up(self.dropout(style), 5)
 
         style = self.style_ffn(style)

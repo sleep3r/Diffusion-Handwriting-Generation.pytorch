@@ -1,5 +1,5 @@
 experiment:
-  name: 'diffusion_handwriting_generation'
+  name: 'base'
   work_dir: '~/runs'
   data_dir: '~/data'
   splits_file: '~/data/splits.json'

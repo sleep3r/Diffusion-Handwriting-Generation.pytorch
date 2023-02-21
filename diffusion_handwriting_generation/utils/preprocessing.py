@@ -59,3 +59,4 @@ def remove_whitespace(img, thresh, remove_middle=False):
     else:
         rows, cols = rows[0], cols[0]
         return img[rows[0] : rows[-1], cols[0] : cols[-1]]
+

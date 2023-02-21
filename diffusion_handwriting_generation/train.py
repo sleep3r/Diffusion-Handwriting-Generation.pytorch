@@ -18,15 +18,19 @@ from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 
 def train_step(x, pen_lifts, text, style_vectors, glob_args):
     model, alpha_set, bce, train_loss, optimizer = glob_args
+
     alphas = get_alphas(len(x), alpha_set)
     eps = torch.randn_like(x)
-    x_perturbed = torch.sqrt(alphas) * x
-    x_perturbed += torch.sqrt(1 - alphas) * eps
+
+    x_perturbed = (
+        torch.sqrt(alphas).unsqueeze(-1) * x
+        + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
+    )
+
+    print(torch.sqrt(alphas).shape, "<-----")
 
     optimizer.zero_grad()
-    score, pl_pred, att = model(
-        x_perturbed, text, torch.sqrt(alphas), style_vectors, training=True
-    )
+    score, pl_pred, att = model(x_perturbed, text, torch.sqrt(alphas), style_vectors)
     loss = loss_fn(eps, score, pen_lifts, pl_pred, alphas, bce)
     loss.backward()
     optimizer.step()
@@ -42,6 +46,8 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         c3=cfg.training_args.channels * 2,
         drop_rate=cfg.training_args.dropout,
     )
+    model.train()
+
     optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
 
     logger.info("Loading data...")
@@ -49,6 +55,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         data_dir=cfg.experiment.data_dir,
         kind="train",
         splits_file=cfg.experiment.splits_file,
+        max_files=50,
         **cfg.dataset_args,
     )
 
@@ -64,7 +71,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     bce = nn.BCELoss()
     train_loss = []
     beta_set = get_beta_set()
-    alpha_set = torch.cumprod(1 - beta_set)
+    alpha_set = torch.cumprod(1 - beta_set, dim=0)
 
     try:
         logger.info(

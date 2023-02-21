@@ -3,14 +3,14 @@ notation clarification:
 we use the variable "alpha" for alpha_bar (cumprod 1-beta)
 the alpha in the paper is replaced with 1-beta
 """
-
+import math
 from typing import List
 
 import torch
 from torch import nn
 
 
-def get_beta_set():
+def get_beta_set() -> torch.Tensor:
     beta_set = 0.02 + explin(1e-5, 0.4, 60)
     return beta_set
 
@@ -27,13 +27,13 @@ def explin(min_val: float, max_val: float, L: int) -> torch.Tensor:
     Returns:
         torch.Tensor: tensor of exponential values.
     """
-    log_min = torch.log(torch.tensor(min_val))
-    log_max = torch.log(torch.tensor(max_val))
-    lin_space = torch.linspace(log_min.item(), log_max.item(), L)
+    log_min = math.log(min_val)
+    log_max = math.log(max_val)
+    lin_space = torch.linspace(log_min, log_max, L)
     return torch.exp(lin_space)
 
 
-def get_alphas(batch_size: int, alpha_set: List[float]) -> torch.Tensor:
+def get_alphas(batch_size: int, alpha_set: torch.Tensor) -> torch.Tensor:
     """
     Returns random alpha values from the set of predefined alpha values.
 
@@ -45,14 +45,16 @@ def get_alphas(batch_size: int, alpha_set: List[float]) -> torch.Tensor:
         torch.Tensor: tensor of generated alpha values.
     """
     alpha_indices = torch.randint(
-        low=0, high=len(alpha_set) - 1, size=(batch_size, 1), dtype=torch.int32
+        low=0,
+        high=len(alpha_set) - 1,
+        size=(batch_size, 1),
+        dtype=torch.int64,
     )
     lower_alphas = alpha_set[alpha_indices]
     upper_alphas = alpha_set[alpha_indices + 1]
     alphas = (
         torch.rand(lower_alphas.shape) * (upper_alphas - lower_alphas) + lower_alphas
     )
-    alphas = alphas.unsqueeze(1).unsqueeze(2)
     return alphas
 
 
