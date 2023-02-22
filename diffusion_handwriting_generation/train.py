@@ -1,9 +1,9 @@
 import logging
 import time
 
+from checkpoint import save_checkpoint
 import torch
 
-from checkpoint import save_checkpoint
 from diffusion_handwriting_generation.config import (
     DLConfig,
     config_entrypoint,
@@ -40,6 +40,7 @@ def train_step(
     loss = loss_fn(eps, score, pen_lifts, pen_lifts_pred, alphas)
     loss.backward()
     optimizer.step()
+
     train_loss.append(loss.item())
     return score, att
 
@@ -61,7 +62,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         data_dir=cfg.experiment.data_dir,
         kind="train",
         splits_file=cfg.experiment.splits_file,
-        max_files=50,
+        max_files=cfg.training_args.max_files,
         **cfg.dataset_args,
     )
 
@@ -78,10 +79,10 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     beta_set = get_beta_set()
     alpha_set = torch.cumprod(1 - beta_set, dim=0)
 
+    logger.info(
+        f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
+    )
     try:
-        logger.info(
-            f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
-        )
         count = 0
         while True:
             batch = next(iter(train_loader))
@@ -102,10 +103,10 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                     "Iteration %d, Loss %f, Time %ds"
                     % (count + 1, sum(train_loss) / len(train_loss), time.time() - s)
                 )
-                train_loss = []
 
             if (count + 1) % cfg.training_args.save_freq == 0:
-                checkpoint_path = meta["exp_dir"] / f"model_checkpoint{count + 1}.pth"
+                checkpoint_path = meta["exp_dir"] / f"model_checkpoint_{count + 1}.pth"
+                logger.info("Saving checkpoint...")
                 save_checkpoint(model, checkpoint_path)
 
             if count >= cfg.training_args.steps:
@@ -114,6 +115,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 break
     except KeyboardInterrupt:
         logger.info("Training interrupted by user.")
+        save_checkpoint(model, meta["exp_dir"] / f"model_checkpoint_last.pth")
 
 
 def main(cfg: DLConfig) -> None:

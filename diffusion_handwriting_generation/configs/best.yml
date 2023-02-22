@@ -16,16 +16,17 @@ dataset_args:
 
 training_args:
   steps: 60000
-  batch_size: 10
+  batch_size: 16
   num_workers: 4
+  max_files: 500
 
   warmup: 10000
   dropout: 0.0
   att_layers_num: 2
   channels: 128
 
-  log_freq: 1000
-  save_freq: 10000
+  log_freq: 5
+  save_freq: 5
 
 
 optimizer:
