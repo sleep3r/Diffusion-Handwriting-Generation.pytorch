@@ -129,11 +129,11 @@ class DiffusionModel(nn.Module):
         self.dec2 = ConvBlock(c3, c2, dils=(1, 1))
         self.dec1 = ConvBlock(c2, c1, dils=(1, 1))
 
-        # Output layer
+        # Strokes output layer
         self.output_dense = nn.Linear(c1, 2)
 
-        # Pen lifts layer
-        self.pen_lifts_dense = nn.Sequential(nn.Linear(c1, 2), nn.Sigmoid())
+        # Pen lifts output layer
+        self.pen_lifts_dense = nn.Sequential(nn.Linear(c1, 1), nn.Sigmoid())
 
     def _pool(self, x: torch.Tensor) -> torch.Tensor:
         return self.pool(x.transpose(2, 1)).transpose(2, 1)
@@ -185,5 +185,5 @@ class DiffusionModel(nn.Module):
         x = self.dec1(x, sigma)
 
         output = self.output_dense(x)
-        pl = self.pen_lifts_dense(x)
-        return output, pl, att
+        pen_lifts = self.pen_lifts_dense(x).squeeze(-1)
+        return output, pen_lifts, att
