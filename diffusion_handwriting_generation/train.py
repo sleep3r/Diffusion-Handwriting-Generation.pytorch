@@ -61,7 +61,9 @@ def train_step(
         )
 
     optimizer.step()
-    # scheduler.step()
+
+    if scheduler is not None:
+        scheduler.step()
 
     train_loss.append(loss.item())
 
