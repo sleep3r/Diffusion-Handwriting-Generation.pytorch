@@ -48,7 +48,8 @@ def train_step(
         torch.sqrt(alphas),
         style_vectors,
     )
-    loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas)
+
+    loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred.squeeze(-1), alphas)
 
     optimizer.zero_grad()
     loss.backward()
@@ -65,20 +66,7 @@ def train_step(
     lrl = [param_group["lr"] for param_group in optimizer.param_groups]
     train_loss.append(loss.item())
 
-    print({"lr": lrl[-1], "loss": loss.item()})
-    print(
-        {
-            # "eps": eps,
-            "strokes_pred": strokes_pred,
-            "pen_lifts_pred": pen_lifts_pred,
-            # "att": att,
-            # "alphas": alphas,
-            # "x_perturbed": x_perturbed,
-            # "x": x,
-            # "pen_lifts": pen_lifts,
-        }
-    )
-
+    print(lrl)
 
 def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     model = DiffusionModel(

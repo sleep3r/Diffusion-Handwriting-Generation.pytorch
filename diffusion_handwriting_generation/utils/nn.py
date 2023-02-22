@@ -147,7 +147,10 @@ def reshape_down(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
 
 
 def ff_network(
-    inp: int, out: int, hidden: int = 768, act_before: bool = True
+    inp: int,
+    out: int,
+    hidden: int = 768,
+    act_before: bool = True,
 ) -> nn.Sequential:
     """Builds a feedforward network in PyTorch.
 
@@ -160,9 +163,10 @@ def ff_network(
     Returns:
         nn.Sequential: feedforward network.
     """
-    ff_layers = [nn.Linear(inp, hidden), nn.Linear(hidden, out), nn.ReLU()]
+    ff_layers = [nn.Linear(inp, hidden), nn.ReLU(), nn.Linear(hidden, out)]
     if act_before:
         ff_layers.insert(0, nn.ReLU())
+        # pass
     return nn.Sequential(*ff_layers)
 
 

@@ -132,7 +132,7 @@ class DiffusionModel(nn.Module):
         # Strokes output layer
         self.output_dense = nn.Linear(c1, 2)
 
-        # Pen lifts output layer
+        # Pen lifts output layer with sigmoid activation
         self.pen_lifts_dense = nn.Sequential(nn.Linear(c1, 1), nn.Sigmoid())
 
     def _pool(self, x: torch.Tensor) -> torch.Tensor:
@@ -149,8 +149,8 @@ class DiffusionModel(nn.Module):
         Args:
             strokes: [B, T, 2]
             text: [B, L]
-            sigma: [B, 1, 1]
-            style_vector: [B, N, 1280]
+            sigma: [B, 1]
+            style_vector: [B, 1, 1280]
         """
         sigma = self.sigma_ffn(sigma)
         text_mask = create_padding_mask(text)
@@ -185,5 +185,5 @@ class DiffusionModel(nn.Module):
         x = self.dec1(x, sigma)
 
         output = self.output_dense(x)
-        pen_lifts = self.pen_lifts_dense(x).squeeze(-1)
+        pen_lifts = self.pen_lifts_dense(x)
         return output, pen_lifts, att

@@ -10,6 +10,6 @@ class AffineTransformLayer(nn.Module):
         self.beta_emb = nn.Linear(32, hidden, bias=False)
 
     def forward(self, x: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
-        gammas = self.gamma_emb(sigma).unsqueeze(1)
-        betas = self.beta_emb(sigma).unsqueeze(1)
+        gammas = self.gamma_emb(sigma).view(sigma.size(0), 1, -1)
+        betas = self.beta_emb(sigma).view(sigma.size(0), 1, -1)
         return x * gammas + betas
