@@ -1,34 +1,33 @@
 experiment:
-  name: 'base'
-  work_dir: '~/runs'
-  data_dir: '~/data'
-  splits_file: '~/data/splits.json'
+  name: 'diffusion_handwriting_generation'
+  work_dir: '/Users/20227685/Desktop/IAM/runs'
+  data_dir: '/Users/20227685/Desktop/IAM/data'
+  splits_file: './data/splits.json'
 
   seed: 54321
   precision: 10
   deterministic: false
 
-
 dataset_args:
-  max_seq_len: 480
+  max_seq_len: 480 # % 8 == 0
   max_text_len: 50
   img_height: 90
   img_width: 1400
 
 training_args:
   steps: 60000
-  batch_size: 96
+  batch_size: 16
   num_workers: 4
   max_files: 500
 
-  warmup: 10000
-  clip_grad: 100
+  warmup_steps: 10000
+  clip_grad: 100.0
   dropout: 0.0
   att_layers_num: 2
   channels: 128
 
-  log_freq: 1000
-  save_freq: 10000
+  log_freq: 5
+  save_freq: 5
 
 
 optimizer:
@@ -36,3 +35,4 @@ optimizer:
   params:
     lr: 0.0003
     weight_decay: 0.00001
+    betas: [0.9, 0.98]

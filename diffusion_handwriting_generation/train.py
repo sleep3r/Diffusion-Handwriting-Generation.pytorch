@@ -1,9 +1,9 @@
 import logging
 import time
 
-from checkpoint import save_checkpoint
 import torch
 
+from diffusion_handwriting_generation.checkpoint import save_checkpoint
 from diffusion_handwriting_generation.config import (
     DLConfig,
     config_entrypoint,
@@ -12,6 +12,7 @@ from diffusion_handwriting_generation.config import (
 from diffusion_handwriting_generation.dataset import IAMDataset
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionModel
+from diffusion_handwriting_generation.scheduler import InvSqrtSchedule
 from diffusion_handwriting_generation.utils.clip_grad import dispatch_clip_grad
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
@@ -23,9 +24,15 @@ def train_step(
     pen_lifts: torch.Tensor,
     text: torch.Tensor,
     style_vectors: torch.Tensor,
-    glob_args: tuple[DiffusionModel, torch.Tensor, list[float], torch.optim.Optimizer],
-) -> tuple[torch.Tensor, torch.Tensor]:
-    model, alpha_set, train_loss, optimizer = glob_args
+    glob_args: tuple[
+        DiffusionModel,
+        torch.Tensor,
+        list[float],
+        torch.optim.Optimizer,
+        type[torch.optim.lr_scheduler._LRScheduler],
+    ],
+) -> None:
+    model, alpha_set, train_loss, optimizer, scheduler = glob_args
 
     alphas = get_alphas(len(x), alpha_set)
     eps = torch.randn_like(x)
@@ -35,11 +42,15 @@ def train_step(
         + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
     )
 
-    optimizer.zero_grad()
-    score, pen_lifts_pred, att = model(
-        x_perturbed, text, torch.sqrt(alphas), style_vectors
+    strokes_pred, pen_lifts_pred, att = model(
+        x_perturbed,
+        text,
+        torch.sqrt(alphas),
+        style_vectors,
     )
-    loss = loss_fn(eps, score, pen_lifts, pen_lifts_pred, alphas)
+    loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas)
+
+    optimizer.zero_grad()
     loss.backward()
 
     if cfg.training_args.clip_grad is not None:
@@ -49,9 +60,24 @@ def train_step(
         )
 
     optimizer.step()
+    scheduler.step()
 
+    lrl = [param_group["lr"] for param_group in optimizer.param_groups]
     train_loss.append(loss.item())
-    return score, att
+
+    print({"lr": lrl[-1], "loss": loss.item()})
+    print(
+        {
+            # "eps": eps,
+            "strokes_pred": strokes_pred,
+            "pen_lifts_pred": pen_lifts_pred,
+            # "att": att,
+            # "alphas": alphas,
+            # "x_perturbed": x_perturbed,
+            # "x": x,
+            # "pen_lifts": pen_lifts,
+        }
+    )
 
 
 def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
@@ -65,6 +91,11 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     model.train()
 
     optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
+    scheduler = InvSqrtSchedule(
+        optimizer,
+        d_model=cfg.training_args.channels * 2,
+        warmup_steps=cfg.training_args.warmup_steps,
+    )
 
     logger.info("Loading data...")
     train_dataset = IAMDataset(
@@ -104,7 +135,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
             )
             strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
 
-            glob_args = model, alpha_set, train_loss, optimizer
+            glob_args = model, alpha_set, train_loss, optimizer, scheduler
             train_step(cfg, strokes, pen_lifts, text, style_vectors, glob_args)
 
             if (count + 1) % cfg.training_args.log_freq == 0:
