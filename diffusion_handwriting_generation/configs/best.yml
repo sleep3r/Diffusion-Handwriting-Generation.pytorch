@@ -21,13 +21,13 @@ training_args:
   max_files: 4
 
   warmup_steps: 10000
-  clip_grad: 0.1
+  clip_grad: 100.0
   dropout: 0.0
   att_layers_num: 2
   channels: 128
 
   log_freq: 5
-  save_freq: 50
+  save_freq: 5000
 
 
 optimizer:

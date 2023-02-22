@@ -61,12 +61,10 @@ def train_step(
         )
 
     optimizer.step()
-    scheduler.step()
+    # scheduler.step()
 
-    lrl = [param_group["lr"] for param_group in optimizer.param_groups]
     train_loss.append(loss.item())
 
-    print(lrl)
 
 def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     model = DiffusionModel(
@@ -79,11 +77,12 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     model.train()
 
     optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
-    scheduler = InvSqrtSchedule(
-        optimizer,
-        d_model=cfg.training_args.channels * 2,
-        warmup_steps=cfg.training_args.warmup_steps,
-    )
+    # scheduler = InvSqrtSchedule(
+    #     optimizer,
+    #     d_model=cfg.training_args.channels * 2,
+    #     warmup_steps=cfg.training_args.warmup_steps,
+    # )
+    scheduler = None
 
     logger.info("Loading data...")
     train_dataset = IAMDataset(
@@ -128,9 +127,11 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
 
             if (count + 1) % cfg.training_args.log_freq == 0:
                 logger.info(
-                    "Iteration %d, Loss %f, Time %ds"
-                    % (count + 1, sum(train_loss) / len(train_loss), time.time() - s)
+                    f"Step {count + 1} | "
+                    f"Loss: {sum(train_loss) / len(train_loss):.3f} | "
+                    f"Time: {time.time() - s:.3f} sec"
                 )
+                train_loss = []
 
             if (count + 1) % cfg.training_args.save_freq == 0:
                 checkpoint_path = meta["exp_dir"] / f"model_checkpoint_{count + 1}.pth"
