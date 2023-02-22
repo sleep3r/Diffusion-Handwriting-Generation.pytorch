@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import logging
+from os import PathLike
 from pathlib import Path
 import re
 from typing import Any, Dict, Optional, Union
@@ -230,7 +231,7 @@ def get_state_dict(
 
 def save_checkpoint(
     model: torch.nn.Module,
-    filename: Union[str, Path],
+    filename: PathLike | str,
     meta: Optional[Dict[str, Any]] = None,
     optimizer=None,
 ) -> None:

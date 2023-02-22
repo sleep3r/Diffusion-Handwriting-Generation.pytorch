@@ -3,6 +3,7 @@ import time
 
 import torch
 
+from checkpoint import save_checkpoint
 from diffusion_handwriting_generation.config import (
     DLConfig,
     config_entrypoint,
@@ -81,7 +82,11 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         logger.info(
             f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
         )
-        for count, batch in enumerate(train_loader):
+        count = 0
+        while True:
+            batch = next(iter(train_loader))
+            count += 1
+
             strokes, text, style_vectors = (
                 batch["strokes"],
                 batch["text"],
@@ -100,8 +105,8 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 train_loss = []
 
             if (count + 1) % cfg.training_args.save_freq == 0:
-                save_path = meta["exp_dir"] / f"model_step{count + 1}.pth"
-                torch.save(model.state_dict(), save_path)
+                checkpoint_path = meta["exp_dir"] / f"model_checkpoint{count + 1}.pth"
+                save_checkpoint(model, checkpoint_path)
 
             if count >= cfg.training_args.steps:
                 logger.info("Training finished, saving model weights.")
