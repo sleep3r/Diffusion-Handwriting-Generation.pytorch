@@ -8,6 +8,7 @@ experiment:
   precision: 10
   deterministic: false
 
+
 dataset_args:
   max_seq_len: 480
   max_text_len: 50
@@ -21,6 +22,7 @@ training_args:
   max_files: 500
 
   warmup: 10000
+  clip_grad: 100
   dropout: 0.0
   att_layers_num: 2
   channels: 128

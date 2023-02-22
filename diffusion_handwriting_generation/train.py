@@ -12,11 +12,13 @@ from diffusion_handwriting_generation.config import (
 from diffusion_handwriting_generation.dataset import IAMDataset
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionModel
+from diffusion_handwriting_generation.utils.clip_grad import dispatch_clip_grad
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 
 
 def train_step(
+    cfg: DLConfig,
     x: torch.Tensor,
     pen_lifts: torch.Tensor,
     text: torch.Tensor,
@@ -39,6 +41,13 @@ def train_step(
     )
     loss = loss_fn(eps, score, pen_lifts, pen_lifts_pred, alphas)
     loss.backward()
+
+    if cfg.training_args.clip_grad is not None:
+        dispatch_clip_grad(
+            model.parameters(),
+            value=cfg.training_args.clip_grad,
+        )
+
     optimizer.step()
 
     train_loss.append(loss.item())
@@ -96,7 +105,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
             strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
 
             glob_args = model, alpha_set, train_loss, optimizer
-            train_step(strokes, pen_lifts, text, style_vectors, glob_args)
+            train_step(cfg, strokes, pen_lifts, text, style_vectors, glob_args)
 
             if (count + 1) % cfg.training_args.log_freq == 0:
                 logger.info(
