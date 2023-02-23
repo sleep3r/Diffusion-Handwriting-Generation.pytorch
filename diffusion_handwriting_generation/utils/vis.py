@@ -10,13 +10,14 @@ def show_strokes(
 ) -> None:
     """Plots strokes into image"""
     positions = np.cumsum(strokes, axis=0).T[:2]
+    pen_lifts = strokes[:, 2].round()
     W, H = np.max(positions, axis=-1) - np.min(positions, axis=-1)
 
     plt.figure(figsize=(scale * W / H, scale))
     plt.axis("off")
 
     prev_ind = 0
-    for ind, is_end in enumerate(strokes[:, 2]):
+    for ind, is_end in enumerate(pen_lifts):
         if is_end:
             plt.plot(
                 positions[0][prev_ind:ind + 1],

@@ -6,16 +6,16 @@ import numpy as np
 import torch
 
 from diffusion_handwriting_generation.config import DLConfig, config_entrypoint
-from diffusion_handwriting_generation.model import DiffusionWriter
-from diffusion_handwriting_generation.utils.preprocessing import read_img
+from diffusion_handwriting_generation.model import DiffusionModel
 from diffusion_handwriting_generation.text_style import StyleExtractor
 from diffusion_handwriting_generation.tokenizer import Tokenizer
+from diffusion_handwriting_generation.utils.io import read_img
 from diffusion_handwriting_generation.utils.nn import (
     get_beta_set,
     new_diffusion_step,
     standard_diffusion_step,
 )
-from diffusion_handwriting_generation.utils.vis import show
+from diffusion_handwriting_generation.utils.vis import show_strokes
 
 
 def run_batch_inference(
@@ -75,7 +75,7 @@ def run_batch_inference(
 
     x = torch.cat([x, pen_lifts], dim=-1)
     for i in range(bs):
-        show(x[i], scale=1, show_output=show_samples, name=path)
+        show_strokes(x[i], scale=1, show_output=show_samples, name=path)
     return x.detach().numpy()
 
 
@@ -126,7 +126,7 @@ def run(
     C2 = C1 * 3 // 2
     C3 = C1 * 2
     style_extractor = StyleExtractor()
-    model = DiffusionWriter(num_layers=num_attlayers, c1=C1, c2=C2, c3=C3)
+    model = DiffusionModel(num_layers=num_attlayers, c1=C1, c2=C2, c3=C3)
 
     _stroke = torch.randn(1, 400, 2)
     _text = torch.randint(50, size=(1, 40), dtype=torch.int32)

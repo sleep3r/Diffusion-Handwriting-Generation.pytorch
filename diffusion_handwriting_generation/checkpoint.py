@@ -1,22 +1,15 @@
 from collections import OrderedDict
 import logging
 from os import PathLike
-from pathlib import Path
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import torch
 from torch.optim import Optimizer
 
-from diffusion_handwriting_generation.config import DLConfig, object_from_dict
-
-
-def get_device() -> str:
-    if torch.cuda.is_available():
-        device = "cuda"
-    else:
-        device = "cpu"
-    return device
+from diffusion_handwriting_generation import DiffusionModel
+from diffusion_handwriting_generation.config import DLConfig
+from diffusion_handwriting_generation.utils.nn import get_device
 
 
 def load_state_dict(
@@ -264,7 +257,9 @@ def save_checkpoint(
 
 
 def load_model(
-    config_path: str, checkpoint_path: str, cfg_options: dict
+    config_path: str,
+    checkpoint_path: str,
+    cfg_options: dict | None = None,
 ) -> (torch.nn.Module, torch.device):
     """
     Initializes model from config file.
@@ -280,21 +275,24 @@ def load_model(
     """
     device: str = get_device()
 
-    config: DLConfig = DLConfig.load(config_path)
+    cfg: DLConfig = DLConfig.load(config_path)
     if cfg_options is not None:
-        config.update(cfg_options)
-    config.model.pretrained = None
-    config.model.train_cfg = None
+        cfg.update(cfg_options)
 
-    model = object_from_dict(config.model).get_transforms()
+    model = DiffusionModel(
+        num_layers=cfg.training_args.att_layers_num,
+        c1=cfg.training_args.channels,
+        c2=cfg.training_args.channels * 3 // 2,
+        c3=cfg.training_args.channels * 2,
+        drop_rate=cfg.training_args.dropout,
+    )
 
     if checkpoint_path is not None:
         load_checkpoint(
             model, checkpoint_path, map_location="cpu" if device == "cpu" else None
         )
-        model.CLASSES = config.label_convertor.dict_list
 
-    model.cfg = config  # save the config in the model for convenience
+    model.cfg = cfg  # save the config in the model for convenience
     model.to(device)
     model.eval()
     return model, device

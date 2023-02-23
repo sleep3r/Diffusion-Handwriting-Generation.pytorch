@@ -10,6 +10,14 @@ import torch
 from torch import nn
 
 
+def get_device() -> str:
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
+    return device
+
+
 def get_beta_set() -> torch.Tensor:
     beta_set = 0.02 + explin(1e-5, 0.4, 60)
     return beta_set
@@ -78,8 +86,8 @@ def standard_diffusion_step(
     Returns:
         torch.Tensor: tensor after the standard diffusion step.
     """
-    beta = torch.tensor(beta)
-    alpha = torch.tensor(alpha)
+    beta = beta.clone().detach()
+    alpha = alpha.clone().detach()
 
     x_t_minus1 = (1 / torch.sqrt(1 - beta)) * (
         xt - (beta * eps / torch.sqrt(1 - alpha))
@@ -110,7 +118,7 @@ def new_diffusion_step(
         torch.Tensor: result of the diffusion step.
     """
     x_t_minus1 = (xt - torch.sqrt(1 - alpha) * eps) / torch.sqrt(1 - beta)
-    x_t_minus1 += torch.randn(xt.shape) * torch.sqrt(1 - alpha_next)
+    x_t_minus1 += torch.randn(xt.shape) * math.sqrt(1 - alpha_next)
     return x_t_minus1
 
 
