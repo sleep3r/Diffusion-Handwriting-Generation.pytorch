@@ -69,6 +69,8 @@ def train_step(
 
 
 def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     model = DiffusionModel(
         num_layers=cfg.training_args.att_layers_num,
         c1=cfg.training_args.channels,
@@ -76,6 +78,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
         c3=cfg.training_args.channels * 2,
         drop_rate=cfg.training_args.dropout,
     )
+    model.to(device)
     model.train()
 
     optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
@@ -123,6 +126,11 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 batch["style"],
             )
             strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
+
+            strokes = strokes.to(device)
+            pen_lifts = pen_lifts.to(device)
+            text = text.to(device)
+            style_vectors = style_vectors.to(device)
 
             glob_args = model, alpha_set, train_loss, optimizer, scheduler
             train_step(cfg, strokes, pen_lifts, text, style_vectors, glob_args)
