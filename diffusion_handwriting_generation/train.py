@@ -131,6 +131,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
             pen_lifts = pen_lifts.to(device)
             text = text.to(device)
             style_vectors = style_vectors.to(device)
+            alpha_set = alpha_set.to(device)
 
             glob_args = model, alpha_set, train_loss, optimizer, scheduler
             train_step(cfg, strokes, pen_lifts, text, style_vectors, glob_args)
