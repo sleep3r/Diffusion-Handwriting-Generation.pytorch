@@ -32,6 +32,7 @@ def train_step(
         type[torch.optim.lr_scheduler._LRScheduler],
     ],
 ) -> None:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model, alpha_set, train_loss, optimizer, scheduler = glob_args
 
     alphas = get_alphas(len(x), alpha_set)
@@ -41,6 +42,11 @@ def train_step(
         torch.sqrt(alphas).unsqueeze(-1) * x
         + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
     )
+
+    x_perturbed = x_perturbed.to(device)
+    text = text.to(device)
+    alphas = alphas.to(device)
+    style_vectors = style_vectors.to(device)
 
     strokes_pred, pen_lifts_pred, att = model(
         x_perturbed,
@@ -126,12 +132,6 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 batch["style"],
             )
             strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
-
-            strokes = strokes.to(device)
-            pen_lifts = pen_lifts.to(device)
-            text = text.to(device)
-            style_vectors = style_vectors.to(device)
-            alpha_set = alpha_set.to(device)
 
             glob_args = model, alpha_set, train_loss, optimizer, scheduler
             train_step(cfg, strokes, pen_lifts, text, style_vectors, glob_args)
