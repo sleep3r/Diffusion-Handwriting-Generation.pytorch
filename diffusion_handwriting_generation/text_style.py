@@ -18,9 +18,11 @@ class StyleExtractor(nn.Module):
     def __init__(self):
         super().__init__()
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.mobilenet = models.mobilenet_v2(
             weights=models.MobileNet_V2_Weights.DEFAULT, progress=True
-        )
+        ).to(self.device)
         self.local_pool = nn.AvgPool2d(kernel_size=(3, 3), stride=1)
         self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
 
@@ -38,7 +40,7 @@ class StyleExtractor(nn.Module):
         Returns:
             torch.Tensor: tensor of shape (batch_size, 1280).
         """
-        x = torch.tensor(img_batch, dtype=torch.float32)
+        x = torch.tensor(img_batch, dtype=torch.float32).to(self.device)
 
         x = (x / 127.5) - 1
         x = torch.cat((x, x, x), dim=1)
