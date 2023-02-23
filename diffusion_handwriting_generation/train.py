@@ -47,6 +47,8 @@ def train_step(
     text = text.to(device)
     alphas = alphas.to(device)
     style_vectors = style_vectors.to(device)
+    eps = eps.to(device)
+    pen_lifts = pen_lifts.to(device)
 
     strokes_pred, pen_lifts_pred, att = model(
         x_perturbed,
