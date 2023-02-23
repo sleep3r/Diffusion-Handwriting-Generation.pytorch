@@ -49,6 +49,7 @@ class StyleExtractor(nn.Module):
         x = self.local_pool(x)
         x = self.global_avg_pool(x)
         x = x.view(x.size(0), -1)
+        # setting back cpu to pin gpu later
         return x.to("cpu")
 
 
