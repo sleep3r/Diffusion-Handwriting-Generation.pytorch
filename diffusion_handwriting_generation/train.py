@@ -147,17 +147,18 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 train_loss = []
 
             if (count + 1) % cfg.training_args.save_freq == 0:
-                checkpoint_path = meta["exp_dir"] / f"model_checkpoint_{count + 1}.pth"
+                checkpoint_path = meta["exp_dir"] / f"checkpoint_{count + 1}.pth"
                 logger.info("Saving checkpoint...")
                 save_checkpoint(model, checkpoint_path)
 
             if count >= cfg.training_args.steps:
                 logger.info("Training finished, saving model weights.")
-                torch.save(model.state_dict(), meta["exp_dir"] / "model.pth")
+                torch.save(model.state_dict(), meta["exp_dir"] / "model_final.pth")
                 break
     except KeyboardInterrupt:
         logger.info("Training interrupted by user.")
-        save_checkpoint(model, meta["exp_dir"] / f"model_checkpoint_last.pth")
+        save_checkpoint(model, meta["exp_dir"] / f"checkpoint_last.pth")
+        torch.save(model.state_dict(), meta["exp_dir"] / "model_last.pth")
 
 
 def main(cfg: DLConfig) -> None:
