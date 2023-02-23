@@ -49,7 +49,7 @@ def train_step(
         style_vectors,
     )
 
-    loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred.squeeze(-1), alphas)
+    loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas)
 
     optimizer.zero_grad()
     loss.backward()

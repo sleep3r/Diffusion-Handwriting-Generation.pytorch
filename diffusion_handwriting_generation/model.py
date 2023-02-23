@@ -185,5 +185,5 @@ class DiffusionModel(nn.Module):
         x = self.dec1(x, sigma)
 
         output = self.output_dense(x)
-        pen_lifts = self.pen_lifts_dense(x)
+        pen_lifts = self.pen_lifts_dense(x).squeeze(-1)
         return output, pen_lifts, att
