@@ -153,7 +153,9 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
 
             if count >= cfg.training_args.steps:
                 logger.info("Training finished, saving model weights.")
-                torch.save(model.state_dict(), meta["exp_dir"] / "model_final.pth")
+                model_path = meta["exp_dir"] / "model_final.pth"
+                torch.save(model.state_dict(), model_path)
+                logger.info(str(model_path))
                 break
     except KeyboardInterrupt:
         logger.info("Training interrupted by user.")
