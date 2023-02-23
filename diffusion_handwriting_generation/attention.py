@@ -9,6 +9,8 @@ class PosEmbeddings(nn.Module):
     def __init__(self, dim, pos_factor=1.0):
         super().__init__()
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.dim = dim
         self.pos_factor = pos_factor
 
@@ -20,6 +22,7 @@ class PosEmbeddings(nn.Module):
         embeddings = time[:, None] * embeddings[None, :] * self.pos_factor
         embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
         embeddings = embeddings[None, ...]
+        embeddings = embeddings.to(self.device)
         return embeddings
 
 
