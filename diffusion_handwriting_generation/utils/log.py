@@ -5,7 +5,6 @@ from typing import List
 import pandas as pd
 
 from diffusion_handwriting_generation.config import DLConfig
-from diffusion_handwriting_generation.utils.distributed import get_dist_info
 
 logger_initialized = {}
 
@@ -47,10 +46,9 @@ def get_logger(name, cfg: DLConfig = None, meta: dict = None, log_level=logging.
 
     handlers = [logging.StreamHandler(stream=sys.stdout)]
 
-    rank, _ = get_dist_info()
 
     # only rank 0 will add a FileHandler
-    if rank == 0 and meta is not None:
+    if meta is not None:
         log_file = meta["exp_dir"] / "run.log"
         # Here, the default behaviour of the official logger is 'a'. Thus, we
         # provide an interface to change the file mode to the default
@@ -65,10 +63,7 @@ def get_logger(name, cfg: DLConfig = None, meta: dict = None, log_level=logging.
         handler.setLevel(log_level)
         logger.addHandler(handler)
 
-    if rank == 0:
-        logger.setLevel(log_level)
-    else:
-        logger.setLevel(logging.ERROR)
+    logger.setLevel(log_level)
 
     logger_initialized[name] = True
     return logger
