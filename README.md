@@ -10,10 +10,42 @@
 
 ----
 
-# WORK IN PROGRESS...
+## Data preparation:
 
+Download [IAM Handwriting Database](https://fki.tic.heia-fr.ch/databases/iam-handwriting-database) and extract it
+somewhere with the following structure:
+
+```
+DATA_DIR/
+├── ascii
+├── lineImages
+└── lineStrokes
+```
+
+## Install:
+
+```bash
+make install
+```
+
+## Train:
+First, configure your training in `configs/<cfg>.yml`:
+
+```yml
+experiment:
+  name: <exp_name>
+  work_dir: <work_dir>
+  data_dir: <data_dir>
+```
+
+Then, run:
+
+```bash
+make train CONFIG=<cfg>.yml
+```
 
 ## References:
+
 |Papers|
 |---|
 | [[1]](https://arxiv.org/abs/2011.06704) Luhman, Troy, and Eric Luhman. "Diffusion models for handwriting generation." arXiv preprint arXiv:2011.06704 (2020). | 
