@@ -12,7 +12,7 @@ from diffusion_handwriting_generation.config import (
 from diffusion_handwriting_generation.dataset import IAMDataset
 from diffusion_handwriting_generation.loss import loss_fn
 from diffusion_handwriting_generation.model import DiffusionModel
-from diffusion_handwriting_generation.scheduler import InvSqrtSchedule
+from diffusion_handwriting_generation.scheduler import InvSqrtScheduledOptim
 from diffusion_handwriting_generation.utils.clip_grad import dispatch_clip_grad
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
@@ -20,6 +20,7 @@ from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 
 def train_step(
     cfg: DLConfig,
+    device: torch.device,
     x: torch.Tensor,
     pen_lifts: torch.Tensor,
     text: torch.Tensor,
@@ -28,12 +29,10 @@ def train_step(
         DiffusionModel,
         torch.Tensor,
         list[float],
-        torch.optim.Optimizer,
-        type[torch.optim.lr_scheduler._LRScheduler],
+        InvSqrtScheduledOptim,
     ],
 ) -> None:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model, alpha_set, train_loss, optimizer, scheduler = glob_args
+    model, alpha_set, train_loss, optimizer = glob_args
 
     alphas = get_alphas(len(x), alpha_set)
     eps = torch.randn_like(x)
@@ -44,11 +43,8 @@ def train_step(
     )
 
     x_perturbed = x_perturbed.to(device)
-    text = text.to(device)
     alphas = alphas.to(device)
-    style_vectors = style_vectors.to(device)
     eps = eps.to(device)
-    pen_lifts = pen_lifts.to(device)
 
     strokes_pred, pen_lifts_pred, att = model(
         x_perturbed,
@@ -68,10 +64,7 @@ def train_step(
             value=cfg.training_args.clip_grad,
         )
 
-    optimizer.step()
-
-    if scheduler is not None:
-        scheduler.step()
+    optimizer.step_and_update_lr()
 
     train_loss.append(loss.item())
 
@@ -89,13 +82,12 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     model.to(device)
     model.train()
 
-    optimizer = object_from_dict(cfg.optimizer, params=model.parameters())
-    # scheduler = InvSqrtSchedule(
-    #     optimizer,
-    #     d_model=cfg.training_args.channels * 2,
-    #     warmup_steps=cfg.training_args.warmup_steps,
-    # )
-    scheduler = None
+    optimizer = InvSqrtScheduledOptim(
+        optimizer=object_from_dict(cfg.optimizer, params=model.parameters()),
+        lr_mul=1.0,
+        d_model=cfg.training_args.channels,
+        n_warmup_steps=cfg.training_args.warmup_steps,
+    )
 
     logger.info("Loading data...")
     train_dataset = IAMDataset(
@@ -135,8 +127,8 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
             )
             strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
 
-            glob_args = model, alpha_set, train_loss, optimizer, scheduler
-            train_step(cfg, strokes, pen_lifts, text, style_vectors, glob_args)
+            glob_args = model, alpha_set, train_loss, optimizer
+            train_step(cfg, device, strokes, pen_lifts, text, style_vectors, glob_args)
 
             if (count + 1) % cfg.training_args.log_freq == 0:
                 logger.info(

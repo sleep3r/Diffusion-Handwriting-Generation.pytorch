@@ -49,6 +49,7 @@ class IAMDataset(Dataset):
 
         self.tokenizer = Tokenizer()
         self.style_extractor = StyleExtractor()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.__init_dataset()
 
@@ -106,7 +107,7 @@ class IAMDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         return {
-            "strokes": torch.FloatTensor(self.dataset[idx]["strokes"]),
-            "text": torch.IntTensor(self.dataset[idx]["text"]),
-            "style": self.dataset[idx]["style"],
+            "strokes": torch.FloatTensor(self.dataset[idx]["strokes"]).to(self.device),
+            "text": torch.IntTensor(self.dataset[idx]["text"]).to(self.device),
+            "style": self.dataset[idx]["style"].to(self.device),
         }
