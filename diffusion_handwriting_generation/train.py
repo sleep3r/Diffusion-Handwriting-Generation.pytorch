@@ -42,6 +42,9 @@ def train_step(
         + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
     )
 
+    pen_lifts = pen_lifts.to(device)
+    text = text.to(device)
+    style_vectors = style_vectors.to(device)
     x_perturbed = x_perturbed.to(device)
     alphas = alphas.to(device)
     eps = eps.to(device)
