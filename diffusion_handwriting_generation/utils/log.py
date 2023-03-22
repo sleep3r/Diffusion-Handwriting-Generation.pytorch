@@ -6,10 +6,10 @@ import pandas as pd
 
 from diffusion_handwriting_generation.config import DLConfig
 
-logger_initialized = {}
+logger_initialized: dict = {}
 
 
-def get_logger(name, cfg: DLConfig = None, meta: dict = None, log_level=logging.INFO):
+def get_logger(name, cfg: DLConfig, meta: dict, log_level=logging.INFO):
     """
     Initialize and get a logger by name.
     If the logger has not been initialized, this method will initialize the
@@ -45,7 +45,6 @@ def get_logger(name, cfg: DLConfig = None, meta: dict = None, log_level=logging.
     logger.propagate = False
 
     handlers = [logging.StreamHandler(stream=sys.stdout)]
-
 
     # only rank 0 will add a FileHandler
     if meta is not None:

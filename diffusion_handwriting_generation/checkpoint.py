@@ -208,7 +208,7 @@ def get_state_dict(
         destination = OrderedDict()
         destination._metadata = OrderedDict()
 
-    destination._metadata[prefix[:-1]] = local_metadata = dict(version=module._version)
+    destination._metadata[prefix[:-1]] = local_metadata = dict(version=module._version)  # type: ignore
     _save_to_state_dict(module, destination, prefix, keep_vars)
 
     for name, child in module._modules.items():
@@ -242,7 +242,7 @@ def save_checkpoint(
             Default: None.
     """
     if hasattr(model, "module"):
-        model = model.module
+        model = model.module  # type: ignore
 
     checkpoint = {"meta": meta, "state_dict": weights_to_cpu(get_state_dict(model))}
     # save optimizer state dict in the checkpoint
@@ -251,7 +251,7 @@ def save_checkpoint(
     elif isinstance(optimizer, dict):
         checkpoint["optimizer"] = {}
         for name, optim in optimizer.items():
-            checkpoint["optimizer"][name] = optim.state_dict()
+            checkpoint["optimizer"][name] = optim.state_dict()  # type: ignore
 
     torch.save(checkpoint, filename)
 
@@ -260,7 +260,7 @@ def load_model(
     config_path: str,
     checkpoint_path: str,
     cfg_options: dict | None = None,
-) -> (torch.nn.Module, torch.device):
+) -> tuple[DiffusionModel, str]:
     """
     Initializes model from config file.
 
@@ -289,10 +289,11 @@ def load_model(
 
     if checkpoint_path is not None:
         load_checkpoint(
-            model, checkpoint_path, map_location="cpu" if device == "cpu" else None
+            model,
+            checkpoint_path,
+            map_location="gpu" if device == "gpu" else "cpu",
         )
 
-    model.cfg = cfg  # save the config in the model for convenience
     model.to(device)
     model.eval()
     return model, device

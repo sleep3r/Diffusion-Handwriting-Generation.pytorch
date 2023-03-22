@@ -23,8 +23,7 @@ def pad_stroke_seq(x: np.ndarray, maxlength: int) -> np.ndarray | None:
     zeros = np.zeros((maxlength - len(x), 2))
     ones = np.ones((maxlength - len(x), 1))
     padding = np.concatenate((zeros, ones), axis=-1)
-    x = np.concatenate((x, padding)).astype("float32")
-    return x
+    return np.concatenate((x, padding)).astype("float32")
 
 
 def pad_img(img: np.ndarray, width: int, height: int) -> np.ndarray:
@@ -42,11 +41,14 @@ def pad_img(img: np.ndarray, width: int, height: int) -> np.ndarray:
     """
     pad_len = width - img.shape[1]
     whites = np.ones((height, pad_len)) * 255
-    img = np.concatenate((img, whites), axis=1).astype("float32")
-    return img
+    return np.concatenate((img, whites), axis=1).astype("float32")
 
 
-def remove_whitespace(img, thresh, remove_middle=False):
+def remove_whitespace(
+    img: np.ndarray,
+    thresh: float,
+    remove_middle: bool = False,
+) -> np.ndarray:
     # removes any column or row without a pixel less than specified threshold
     row_mins = np.amin(img, axis=1)
     col_mins = np.amin(img, axis=0)
@@ -56,7 +58,5 @@ def remove_whitespace(img, thresh, remove_middle=False):
 
     if remove_middle:
         return img[rows[0]][:, cols[0]]
-    else:
-        rows, cols = rows[0], cols[0]
-        return img[rows[0] : rows[-1], cols[0] : cols[-1]]
-
+    rows, cols = rows[0], cols[0]
+    return img[rows[0] : rows[-1], cols[0] : cols[-1]]

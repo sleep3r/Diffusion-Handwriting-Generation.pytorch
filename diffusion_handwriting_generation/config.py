@@ -125,7 +125,7 @@ def object_from_dict(d: CfgDict, *args, **default_kwargs) -> Any:
 
     try:
         if params is not None:
-            return pydoc.locate(object_type)(*args, **params)  # noqa
+            return pydoc.locate(object_type)(*args, **params)  # type: ignore # noqa
         else:
             return pydoc.locate(object_type)
     except TypeError:

@@ -14,7 +14,13 @@ from diffusion_handwriting_generation.utils.nn import (
 from diffusion_handwriting_generation.utils.vis import show_strokes
 
 
-def infer(prompt: str, source: str, config_path: str, checkpoint_path: str):
+def infer(
+    prompt: str,
+    source: str,
+    config_path: str,
+    checkpoint_path: str,
+    diffusion_mode: str = "standart",
+):
     model, device = load_model(
         config_path=config_path,
         checkpoint_path=checkpoint_path,
@@ -30,10 +36,7 @@ def infer(prompt: str, source: str, config_path: str, checkpoint_path: str):
     time_steps = len(prompt) * 16
     time_steps = time_steps - (time_steps % 8) + 8
 
-    text = prompt
-    diffusion_mode = "standard"
-
-    text = torch.tensor([tokenizer.encode(text) + [1]])
+    text = torch.tensor([tokenizer.encode(prompt) + [1]])
 
     bs = text.shape[0]
     alpha_set = torch.cumprod(1 - beta_set, dim=0)
@@ -42,7 +45,7 @@ def infer(prompt: str, source: str, config_path: str, checkpoint_path: str):
     for i in tqdm(range(len(beta_set) - 1, -1, -1)):
         alpha = alpha_set[i] * torch.ones((bs, 1, 1))
         beta = beta_set[i] * torch.ones((bs, 1, 1))
-        a_next = alpha_set[i - 1] if i > 0 else 1.0
+        a_next = alpha_set[i - 1] if i > 0 else torch.Tensor(1.0)
 
         model_out, pen_lifts, att = model(x, text, torch.sqrt(alpha), style_vector)
 

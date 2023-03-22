@@ -110,7 +110,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     )
 
     s = time.time()
-    train_loss = []
+    train_loss: list[float] = []
     beta_set = get_beta_set()
     alpha_set = torch.cumprod(1 - beta_set, dim=0)
 

@@ -11,24 +11,23 @@ def show_strokes(
     """Plots strokes into image"""
     positions = np.cumsum(strokes, axis=0).T[:2]
     pen_lifts = strokes[:, 2].round()
-    W, H = np.max(positions, axis=-1) - np.min(positions, axis=-1)
+    w, h = np.max(positions, axis=-1) - np.min(positions, axis=-1)
 
-    plt.figure(figsize=(scale * W / H, scale))
+    plt.figure(figsize=(scale * w / h, scale))
     plt.axis("off")
 
     prev_ind = 0
     for ind, is_end in enumerate(pen_lifts):
         if is_end:
             plt.plot(
-                positions[0][prev_ind:ind + 1],
-                positions[1][prev_ind:ind + 1],
+                positions[0][prev_ind : ind + 1],
+                positions[1][prev_ind : ind + 1],
                 color="black",
             )
             prev_ind = ind + 1
 
-
     if name:
-        plt.savefig("./" + name + ".png", bbox_inches="tight")
+        plt.savefig(f"./{name}.png", bbox_inches="tight")
     if show_output:
         plt.show()
     else:
@@ -39,7 +38,7 @@ def show_image(**images: np.ndarray) -> None:
     """Plots images in one row"""
     n = len(images)
 
-    for i, (name, image) in enumerate(images.items()):
+    for i, (image) in enumerate(images.values()):
         plt.figure(figsize=(10, 5))
         plt.subplot(1, n, i + 1)
         plt.xticks([])

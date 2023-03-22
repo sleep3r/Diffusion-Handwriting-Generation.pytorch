@@ -4,10 +4,9 @@ import torch
 def unitwise_norm(x, norm_type=2.0):
     if x.ndim <= 1:
         return x.norm(norm_type)
-    else:
-        # works for nn.ConvNd and nn,Linear where output dim is first in the kernel/weight tensor
-        # might need special cases for other weights (possibly MHA) where this may not be true
-        return x.norm(norm_type, dim=tuple(range(1, x.ndim)), keepdim=True)
+    # works for nn.ConvNd and nn,Linear where output dim is first in the kernel/weight tensor
+    # might need special cases for other weights (possibly MHA) where this may not be true
+    return x.norm(norm_type, dim=tuple(range(1, x.ndim)), keepdim=True)
 
 
 def adaptive_clip_grad(parameters, clip_factor=0.01, eps=1e-3, norm_type=2.0):
@@ -28,10 +27,14 @@ def adaptive_clip_grad(parameters, clip_factor=0.01, eps=1e-3, norm_type=2.0):
 
 
 def dispatch_clip_grad(
-    parameters, value: float, mode: str = "norm", norm_type: float = 2.0
+    parameters,
+    value: float,
+    mode: str = "norm",
+    norm_type: float = 2.0,
 ):
     """
-    Dispatch to gradient clipping method
+    Dispatch to gradient clipping method.
+
     Args:
         parameters (Iterable): model parameters to clip
         value (float): clipping value/factor/norm, mode dependant
@@ -45,4 +48,4 @@ def dispatch_clip_grad(
     elif mode == "agc":
         adaptive_clip_grad(parameters, value, norm_type=norm_type)
     else:
-        assert False, f"Unknown clip mode ({mode})."
+        raise KeyError(f"Unknown clip mode ({mode}).")

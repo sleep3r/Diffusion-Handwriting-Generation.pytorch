@@ -32,19 +32,6 @@ def scaled_dp_attn(
     v: torch.Tensor,
     mask: torch.Tensor | None = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Calculates dot-product attention between `q` and `k` with scaling, then apply it to `v`.
-
-    Args:
-        q (torch.Tensor): tensor of shape `(batch_size, d_model, seq_len_q)` representing the query;
-        k (torch.Tensor): tensor of shape `(batch_size, d_model, seq_len_k)` representing the keys;
-        v (torch.Tensor): tensor of shape `(batch_size, d_model, seq_len_k)` representing the values;
-        mask (Tensor, optional): tensor of shape `(batch_size, seq_len_q, seq_len_k)` representing the attention mask.
-
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor]: weighted sum of `v` with attention weights and the attention weights.
-        The first element has shape `(batch_size, d_model, seq_len_q)` and the second element has shape `(batch_size, seq_len_q, seq_len_k)`.
-    """
     # (batch_size, d_model, seq_len_q, seq_len_k)
     qk = torch.matmul(q, k.transpose(-2, -1))
     dk = k.size(-1)

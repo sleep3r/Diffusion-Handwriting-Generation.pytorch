@@ -1,12 +1,11 @@
 from typing import Tuple
 
 import torch
-from torch import nn
 
 from diffusion_handwriting_generation.conditioning import AffineTransformLayer
 
 
-class ConvBlock(nn.Module):
+class ConvBlock(torch.nn.Module):
     """
     Args:
         d_inp (int): number of input channels;
@@ -25,7 +24,7 @@ class ConvBlock(nn.Module):
         super().__init__()
 
         # Activation function
-        self.act = nn.SiLU()
+        self.act = torch.nn.SiLU()
 
         # Affine transformation layers
         self.affine1 = AffineTransformLayer(d_out // 2)
@@ -33,20 +32,20 @@ class ConvBlock(nn.Module):
         self.affine3 = AffineTransformLayer(d_out)
 
         # Convolutional layers
-        self.conv_skip = nn.Conv1d(
+        self.conv_skip = torch.nn.Conv1d(
             d_inp,
             d_out,
             kernel_size=3,
             padding="same",
         )
-        self.conv1 = nn.Conv1d(
+        self.conv1 = torch.nn.Conv1d(
             d_inp,
             d_out // 2,
             kernel_size=3,
             dilation=dils[0],
             padding="same",
         )
-        self.conv2 = nn.Conv1d(
+        self.conv2 = torch.nn.Conv1d(
             d_out // 2,
             d_out,
             kernel_size=3,
@@ -55,12 +54,12 @@ class ConvBlock(nn.Module):
         )
 
         # Fully-connected layer
-        self.fc = nn.Linear(d_out, d_out)
+        self.fc = torch.nn.Linear(d_out, d_out)
 
         # Dropout layer
-        self.drop = nn.Dropout(drop_rate)
+        self.drop = torch.nn.Dropout(drop_rate)
 
-    def _conv(self, x: torch.Tensor, conv: nn.Conv1d) -> torch.Tensor:
+    def _conv(self, x: torch.Tensor, conv: torch.nn.Conv1d) -> torch.Tensor:
         return conv(x.transpose(2, 1)).transpose(2, 1)
 
     def forward(self, x: torch.Tensor, alpha: torch.Tensor):

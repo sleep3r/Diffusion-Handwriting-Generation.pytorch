@@ -48,7 +48,9 @@ def env_collect(meta: dict, logger: logging.Logger) -> dict:
 
 
 def set_random_seed(
-    seed: int = 42, precision: int = 10, deterministic: bool = False
+    seed: int = 42,
+    precision: int = 10,
+    deterministic: bool = False,
 ) -> None:
     """
     Seeds all.
@@ -76,7 +78,7 @@ def determine_exp(cfg: DLConfig, meta: dict, logger: logging.Logger) -> dict:
     """Sets seed and experiment name."""
     if cfg.experiment.seed is not None:
         logger.info(
-            f"Set random seed to {cfg.experiment.seed}, deterministic: False \n"
+            f"Set random seed to {cfg.experiment.seed}, deterministic: False \n",
         )
         set_random_seed(
             cfg.experiment.seed,

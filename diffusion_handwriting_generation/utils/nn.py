@@ -69,8 +69,8 @@ def get_alphas(batch_size: int, alpha_set: torch.Tensor) -> torch.Tensor:
 def standard_diffusion_step(
     xt: torch.Tensor,
     eps: torch.Tensor,
-    beta: float,
-    alpha: float,
+    beta: torch.Tensor,
+    alpha: torch.Tensor,
     add_sigma: bool = True,
 ) -> torch.Tensor:
     """
@@ -79,8 +79,8 @@ def standard_diffusion_step(
     Args:
         xt (torch.Tensor): input tensor;
         eps (torch.Tensor): tensor of epsilon values;
-        beta (float): beta value;
-        alpha (float): alpha value;
+        beta (torch.Tensor): beta value;
+        alpha (torch.Tensor): alpha value;
         add_sigma (bool, optional): whether to add random noise.
 
     Returns:

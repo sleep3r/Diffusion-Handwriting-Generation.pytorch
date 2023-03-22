@@ -82,15 +82,15 @@ def parse_lines_txt(ascii_file: Path) -> dict:
     lines_num = -1
 
     with ascii_file.open("r") as f:
-        for l in f.readlines():
-            if "CSR" in l:
+        for line in f.readlines():
+            if "CSR" in line:
                 has_started = True
             # the text under 'CSR' is correct, the one labeled under 'OCR' is not
 
             if has_started:
                 if lines_num > 0:  # there is one space after 'CSR'
-                    if l.strip():  # if the line is not empty
-                        texts[f"{ascii_file.stem}-{lines_num:02d}"] = l[:-1]
+                    if line.strip():  # if the line is not empty
+                        texts[f"{ascii_file.stem}-{lines_num:02d}"] = line[:-1]
 
                 lines_num += 1
     return texts
@@ -113,8 +113,7 @@ def read_img(path: PathLike | str, height: int) -> np.ndarray:
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
     img = remove_whitespace(img, thresh=127)
     h, w = img.shape
-    img = cv2.resize(img, (height * w // h, height), interpolation=cv2.INTER_CUBIC)
-    return img
+    return cv2.resize(img, (height * w // h, height), interpolation=cv2.INTER_CUBIC)
 
 
 def combine_strokes(x: np.ndarray, n: int) -> np.ndarray:
