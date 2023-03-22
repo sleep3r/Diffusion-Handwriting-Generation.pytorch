@@ -25,12 +25,7 @@ def train_step(
     pen_lifts: torch.Tensor,
     text: torch.Tensor,
     style_vectors: torch.Tensor,
-    glob_args: tuple[
-        DiffusionModel,
-        torch.Tensor,
-        list[float],
-        InvSqrtScheduledOptim,
-    ],
+    glob_args: tuple[DiffusionModel, torch.Tensor, list[float], InvSqrtScheduledOptim],
 ) -> None:
     model, alpha_set, train_loss, optimizer = glob_args
 
@@ -115,7 +110,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
     alpha_set = torch.cumprod(1 - beta_set, dim=0)
 
     logger.info(
-        f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n'
+        f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n',
     )
     try:
         count = 0

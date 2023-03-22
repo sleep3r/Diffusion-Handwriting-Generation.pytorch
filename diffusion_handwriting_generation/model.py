@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 
 from diffusion_handwriting_generation.attention import MultiHeadAttention, PosEmbeddings
 from diffusion_handwriting_generation.cnn import ConvBlock
@@ -8,7 +7,7 @@ from diffusion_handwriting_generation.text_style import TextStyleEncoder
 from diffusion_handwriting_generation.utils.nn import create_padding_mask, ff_network
 
 
-class EncoderLayer(nn.Module):
+class EncoderLayer(torch.torch.nn.Module):
     def __init__(
         self,
         d_inp: int,
@@ -22,20 +21,20 @@ class EncoderLayer(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Activation function
-        self.act = nn.SiLU()
+        self.act = torch.nn.SiLU()
 
         # Positional embeddings
         self.text_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(torch.arange(2000))
         self.stroke_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(torch.arange(2000))
 
         # Dropout layer
-        self.drop = nn.Dropout(drop_rate)
+        self.drop = torch.nn.Dropout(drop_rate)
 
         # Layer normalization
-        self.lnorm = nn.LayerNorm(d_out, eps=1e-6)
+        self.lnorm = torch.nn.LayerNorm(d_out, eps=1e-6)
 
         # Fully-connected layers
-        self.text_dense = nn.Linear(d_inp, d_out)
+        self.text_dense = torch.nn.Linear(d_inp, d_out)
         self.ffn = ff_network(d_out, d_out, hidden=d_out * 2)
 
         # Multi-head attention
@@ -69,7 +68,7 @@ class EncoderLayer(nn.Module):
         return out, att
 
 
-class DiffusionModel(nn.Module):
+class DiffusionModel(torch.nn.Module):
     def __init__(
         self,
         num_layers: int = 4,
@@ -83,7 +82,7 @@ class DiffusionModel(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Input layer
-        self.input_dense = nn.Linear(2, c1)
+        self.input_dense = torch.nn.Linear(2, c1)
 
         # Sigma feedforward network
         self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048)
@@ -108,20 +107,20 @@ class DiffusionModel(nn.Module):
         )
 
         # Pooling and upsampling
-        self.pool = nn.AvgPool1d(2)
-        self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
+        self.pool = torch.nn.AvgPool1d(2)
+        self.upsample = torch.nn.Upsample(scale_factor=2, mode="nearest")
 
         # Skip convolutions
-        self.skip_conv1 = nn.Conv1d(c1, c2, kernel_size=3, padding="same")
-        self.skip_conv2 = nn.Conv1d(c2, c3, kernel_size=3, padding="same")
-        self.skip_conv3 = nn.Conv1d(c3, c2 * 2, kernel_size=3, padding="same")
+        self.skip_conv1 = torch.nn.Conv1d(c1, c2, kernel_size=3, padding="same")
+        self.skip_conv2 = torch.nn.Conv1d(c2, c3, kernel_size=3, padding="same")
+        self.skip_conv3 = torch.nn.Conv1d(c3, c2 * 2, kernel_size=3, padding="same")
 
         # Text style model
         self.text_style_model = TextStyleEncoder(c2 * 2, c2 * 4)
 
         # Attention layers
-        self.att_dense = nn.Linear(c1 * 2, c2 * 2)
-        self.att_layers = nn.ModuleList(
+        self.att_dense = torch.nn.Linear(c1 * 2, c2 * 2)
+        self.att_layers = torch.nn.ModuleList(
             [
                 EncoderLayer(c2 * 2, c2 * 2, num_heads=6, drop_rate=drop_rate)
                 for _ in range(num_layers)
@@ -134,10 +133,12 @@ class DiffusionModel(nn.Module):
         self.dec1 = ConvBlock(c2, c1, dils=(1, 1))
 
         # Strokes output layer
-        self.output_dense = nn.Linear(c1, 2)
+        self.output_dense = torch.nn.Linear(c1, 2)
 
         # Pen lifts output layer with sigmoid activation
-        self.pen_lifts_dense = nn.Sequential(nn.Linear(c1, 1), nn.Sigmoid())
+        self.pen_lifts_dense = torch.nn.Sequential(
+            torch.nn.Linear(c1, 1), torch.nn.Sigmoid(),
+        )
 
     def _pool(self, x: torch.Tensor) -> torch.Tensor:
         return self.pool(x.transpose(2, 1)).transpose(2, 1)
@@ -145,7 +146,7 @@ class DiffusionModel(nn.Module):
     def _upsample(self, x: torch.Tensor) -> torch.Tensor:
         return self.upsample(x.transpose(2, 1)).transpose(2, 1)
 
-    def _conv(self, x: torch.Tensor, conv: nn.Conv1d) -> torch.Tensor:
+    def _conv(self, x: torch.Tensor, conv: torch.nn.Conv1d) -> torch.Tensor:
         return conv(x.transpose(2, 1)).transpose(2, 1)
 
     def forward(self, strokes, text, sigma, style_vector):

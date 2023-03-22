@@ -4,10 +4,8 @@ we use the variable "alpha" for alpha_bar (cumprod 1-beta)
 the alpha in the paper is replaced with 1-beta
 """
 import math
-from typing import List
 
 import torch
-from torch import nn
 
 
 def get_device() -> str:
@@ -19,11 +17,10 @@ def get_device() -> str:
 
 
 def get_beta_set() -> torch.Tensor:
-    beta_set = 0.02 + explin(1e-5, 0.4, 60)
-    return beta_set
+    return 0.02 + explin(1e-5, 0.4, 60)
 
 
-def explin(min_val: float, max_val: float, L: int) -> torch.Tensor:
+def explin(min_val: float, max_val: float, l: int) -> torch.Tensor:
     """
     Calculates the exponential values in a logarithmic space.
 
@@ -37,7 +34,7 @@ def explin(min_val: float, max_val: float, L: int) -> torch.Tensor:
     """
     log_min = math.log(min_val)
     log_max = math.log(max_val)
-    lin_space = torch.linspace(log_min, log_max, L)
+    lin_space = torch.linspace(log_min, log_max, l)
     return torch.exp(lin_space)
 
 
@@ -47,7 +44,7 @@ def get_alphas(batch_size: int, alpha_set: torch.Tensor) -> torch.Tensor:
 
     Args:
         batch_size (int): number of alpha values to generate;
-        alpha_set (List[float]): set of predefined alpha values.
+        alpha_set (torch.Tensor): set of predefined alpha values.
 
     Returns:
         torch.Tensor: tensor of generated alpha values.
@@ -60,10 +57,7 @@ def get_alphas(batch_size: int, alpha_set: torch.Tensor) -> torch.Tensor:
     )
     lower_alphas = alpha_set[alpha_indices]
     upper_alphas = alpha_set[alpha_indices + 1]
-    alphas = (
-        torch.rand(lower_alphas.shape) * (upper_alphas - lower_alphas) + lower_alphas
-    )
-    return alphas
+    return torch.rand(lower_alphas.shape) * (upper_alphas - lower_alphas) + lower_alphas
 
 
 def standard_diffusion_step(
@@ -134,8 +128,7 @@ def reshape_up(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
         torch.Tensor: reshaped tensor.
     """
     x_shape = x.shape
-    x = x.view(x_shape[0], x_shape[1] * factor, x_shape[2] // factor)
-    return x
+    return x.view(x_shape[0], x_shape[1] * factor, x_shape[2] // factor)
 
 
 def reshape_down(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
@@ -150,8 +143,7 @@ def reshape_down(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
         torch.Tensor: reshaped tensor.
     """
     x_shape = x.shape
-    x = x.reshape([x_shape[0], x_shape[1] // factor, x_shape[2] * factor])
-    return x
+    return x.reshape([x_shape[0], x_shape[1] // factor, x_shape[2] * factor])
 
 
 def ff_network(
@@ -159,23 +151,28 @@ def ff_network(
     out: int,
     hidden: int = 768,
     act_before: bool = True,
-) -> nn.Sequential:
+) -> torch.nn.Sequential:
     """Builds a feedforward network in PyTorch.
 
     Args:
         inp (int): number of input units in the first layer of the network;
         out (int): number of output units in the final layer of the network;
         hidden (int): number of units in the hidden layer. Defaults to 768;
-        act_before (bool, optional): whether to apply the activation function before the final layer. Defaults to True.
+        act_before (bool, optional): whether to apply the activation function
+                                     before the final layer. Defaults to True.
 
     Returns:
         nn.Sequential: feedforward network.
     """
-    ff_layers = [nn.Linear(inp, hidden), nn.ReLU(), nn.Linear(hidden, out)]
+    ff_layers = [
+        torch.nn.Linear(inp, hidden),
+        torch.nn.ReLU(),
+        torch.nn.Linear(hidden, out),
+    ]
     if act_before:
-        ff_layers.insert(0, nn.ReLU())
+        ff_layers.insert(0, torch.nn.ReLU())
         # pass
-    return nn.Sequential(*ff_layers)
+    return torch.nn.Sequential(*ff_layers)
 
 
 def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
@@ -191,5 +188,4 @@ def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:
     """
     seq = torch.eq(seq, 0).float()
     seq = seq.unsqueeze(1).unsqueeze(2)
-    mask = seq.repeat(1, 1, 1, repeats)
-    return mask
+    return seq.repeat(1, 1, 1, repeats)
