@@ -6,6 +6,7 @@ authors = ["Aleksandr Kalashnikov <sleep3r@icloud.com>"]
 readme = "README.md"
 packages = [{include = "diffusion_handwriting_generation"}]
 
+
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = "^1.24.2"
@@ -30,6 +31,7 @@ ruff = "^0.0.258"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+
 [tool.isort]
 multi_line_output=3
 include_trailing_comma=true
@@ -41,3 +43,11 @@ sections=["FUTURE","STDLIB","THIRDPARTY","FIRSTPARTY","LOCALFOLDER"]
 [tool.ruff]
 ignore = ["E741"]
 line-length = 100
+
+
+[tool.setuptools.metadata]
+description-file = "README.md"
+
+
+[tool.mypy]
+ignore_missing_imports = true
