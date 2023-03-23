@@ -132,7 +132,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 logger.info(
                     f"Step {count + 1} | "
                     f"Loss: {sum(train_loss) / len(train_loss):.3f} | "
-                    f"Time: {time.time() - s:.3f} sec"
+                    f"Time: {time.time() - s:.3f} sec",
                 )
                 train_loss = []
 
@@ -149,7 +149,7 @@ def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
                 break
     except KeyboardInterrupt:
         logger.info("Training interrupted by user.")
-        save_checkpoint(model, meta["exp_dir"] / f"checkpoint_last.pth")
+        save_checkpoint(model, meta["exp_dir"] / "checkpoint_last.pth")
         torch.save(model.state_dict(), meta["exp_dir"] / "model_last.pth")
 
 

@@ -124,7 +124,7 @@ class DiffusionModel(torch.nn.Module):
             [
                 EncoderLayer(c2 * 2, c2 * 2, num_heads=6, drop_rate=drop_rate)
                 for _ in range(num_layers)
-            ]
+            ],
         )
 
         # Decoder layers

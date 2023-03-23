@@ -17,3 +17,4 @@ format:
 
 lint:
 	@mypy $(PACKAGE_NAME)
+	@ruff check $(PACKAGE_NAME) --fix

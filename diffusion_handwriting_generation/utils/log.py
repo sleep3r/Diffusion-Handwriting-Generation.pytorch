@@ -1,6 +1,5 @@
 import logging
 import sys
-from typing import List
 
 import pandas as pd
 
@@ -92,11 +91,11 @@ def print_log(msg, logger=None, level=logging.DEBUG):
         _logger.log(level, msg)
     else:
         raise TypeError(
-            f"logger should be either a logging.Logger object, str, silent or None, but got {type(logger)}"
+            f"logger should be either a logging.Logger object, str, silent or None, but got {type(logger)}",
         )
 
 
-def log_hf_history(history: List[dict], logger: logging.Logger) -> None:
+def log_hf_history(history: list[dict], logger: logging.Logger) -> None:
     """
     Logs hf trainer history to logfile:
 
@@ -119,7 +118,7 @@ def log_hf_history(history: List[dict], logger: logging.Logger) -> None:
         logger.info(dash_line + "\n".join(metrics) + "\n")
 
 
-def log_ner_reports(reports: List[dict], logger: logging.Logger) -> None:
+def log_ner_reports(reports: list[dict], logger: logging.Logger) -> None:
     """
     Logs auto_ner validator classification reports to `run.log`.
     """

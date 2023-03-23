@@ -95,7 +95,7 @@ class IAMDataset(Dataset):
                             "image": img,
                             "style": style,
                             "raw_text": raw_text,
-                        }
+                        },
                     )
 
                     if self.max_files and len(dataset) >= self.max_files:

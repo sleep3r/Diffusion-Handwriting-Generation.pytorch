@@ -1,7 +1,7 @@
 import io
-from os import PathLike
 import pydoc
-from typing import Any, Union
+from os import PathLike
+from typing import Any
 
 from addict import Dict
 from fire import Fire
@@ -34,9 +34,9 @@ class DLConfig:
         return self.__cfg[key]
 
     @classmethod
-    def load(cls, path: Union[PathLike, str]):
+    def load(cls, path: PathLike | str):
         yaml = YAML()
-        with open(path, "r") as f:
+        with open(path) as f:
             yaml_config = yaml.load(f)
         return cls(yaml_config)
 
@@ -55,7 +55,7 @@ class DLConfig:
 
 
 def merge_configs(
-    base_cfg: CommentedMap, cfg: Union[CommentedMap, dict]
+    base_cfg: CommentedMap, cfg: CommentedMap | dict,
 ) -> CommentedMap:
     """Merges base config with the new one."""
     for k, v in cfg.items():
@@ -92,12 +92,12 @@ def fit_config(**kwargs) -> CommentedMap:
     """
     yaml = YAML()
 
-    with open("./diffusion_handwriting_generation/configs/base.yml", "r") as f:
+    with open("./diffusion_handwriting_generation/configs/base.yml") as f:
         base_config = yaml.load(f)
 
     if "config" in kwargs:
         cfg_name = kwargs.pop("config")
-        with open(f"./diffusion_handwriting_generation/configs/{cfg_name}", "r") as f:
+        with open(f"./diffusion_handwriting_generation/configs/{cfg_name}") as f:
             yaml_config = yaml.load(f)
 
         merged_cfg = merge_configs(base_config, yaml_config)

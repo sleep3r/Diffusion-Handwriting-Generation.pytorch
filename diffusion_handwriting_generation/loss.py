@@ -14,6 +14,6 @@ def loss_fn(
     pen_lifts = torch.clamp(pen_lifts, min=1e-7, max=1 - 1e-7)
     pen_lifts_loss = torch.mean(
         nn.BCELoss(reduction="none")(pen_lifts, pen_lifts_pred).mean(dim=1)
-        * torch.squeeze(alphas, -1)
+        * torch.squeeze(alphas, -1),
     )
     return score_loss + pen_lifts_loss

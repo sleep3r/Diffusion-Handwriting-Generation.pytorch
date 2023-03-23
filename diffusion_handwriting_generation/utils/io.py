@@ -1,6 +1,6 @@
+import xml.etree.ElementTree as ET
 from os import PathLike
 from pathlib import Path
-import xml.etree.ElementTree as ET
 
 import cv2
 import numpy as np
@@ -132,7 +132,8 @@ def combine_strokes(x: np.ndarray, n: int) -> np.ndarray:
     Returns:
         np.ndarray: combined strokes.
     """
-    norms = lambda x: np.linalg.norm(x, axis=1)
+    def norms(x):
+        return np.linalg.norm(x, axis=1)
 
     s, s_neighbors = x[::2, :2], x[1::2, :2]
 

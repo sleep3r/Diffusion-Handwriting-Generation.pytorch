@@ -9,10 +9,7 @@ import torch
 
 
 def get_device() -> str:
-    if torch.cuda.is_available():
-        device = "cuda"
-    else:
-        device = "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     return device
 
 

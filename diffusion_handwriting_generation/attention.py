@@ -1,11 +1,9 @@
 import math
-from typing import Tuple
 
 import torch
-import torch.nn as nn
 
 
-class PosEmbeddings(nn.Module):
+class PosEmbeddings(torch.nn.Module):
     def __init__(self, dim, pos_factor=1.0):
         super().__init__()
 
@@ -31,7 +29,7 @@ def scaled_dp_attn(
     k: torch.Tensor,
     v: torch.Tensor,
     mask: torch.Tensor | None = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     # (batch_size, d_model, seq_len_q, seq_len_k)
     qk = torch.matmul(q, k.transpose(-2, -1))
     dk = k.size(-1)
@@ -46,7 +44,7 @@ def scaled_dp_attn(
     return output, attention_weights
 
 
-class MultiHeadAttention(nn.Module):
+class MultiHeadAttention(torch.nn.Module):
     def __init__(self, C: int, num_heads: int):
         super().__init__()
 
@@ -54,11 +52,11 @@ class MultiHeadAttention(nn.Module):
 
         self.num_heads = num_heads
 
-        self.wq = nn.Linear(C, C)
-        self.wk = nn.Linear(C, C)
-        self.wv = nn.Linear(C, C)
+        self.wq = torch.nn.Linear(C, C)
+        self.wk = torch.nn.Linear(C, C)
+        self.wv = torch.nn.Linear(C, C)
 
-        self.dense = nn.Linear(C, C)
+        self.dense = torch.nn.Linear(C, C)
 
     def split_heads(self, x: torch.Tensor, batch_size: int) -> torch.Tensor:
         """

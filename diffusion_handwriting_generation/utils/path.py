@@ -21,7 +21,7 @@ def mkdir_or_exist(dir_name: str, mode: int = 0o777) -> None:
         dir_name: directory name;
         mode: mode.
     """
-    if dir_name == "":
+    if not dir_name:
         return
     dir_name = os.path.expanduser(dir_name)
     os.makedirs(dir_name, mode=mode, exist_ok=True)

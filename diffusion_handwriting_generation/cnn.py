@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import torch
 
@@ -18,7 +17,7 @@ class ConvBlock(torch.nn.Module):
         self,
         d_inp: int,
         d_out: int,
-        dils: Tuple[int, int] = (1, 1),
+        dils: tuple[int, int] = (1, 1),
         drop_rate: float = 0.0,
     ):
         super().__init__()

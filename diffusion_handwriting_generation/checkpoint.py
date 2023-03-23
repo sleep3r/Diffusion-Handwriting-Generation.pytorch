@@ -1,8 +1,8 @@
-from collections import OrderedDict
 import logging
-from os import PathLike
 import re
-from typing import Any, Dict, Optional
+from collections import OrderedDict
+from os import PathLike
+from typing import Any
 
 import torch
 from torch.optim import Optimizer
@@ -16,7 +16,7 @@ def load_state_dict(
     module: torch.nn.Module,
     state_dict: OrderedDict,
     strict: bool = True,
-    logger: Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
 ) -> None:
     """
     Loads state_dict to a module.
@@ -73,11 +73,11 @@ def load_state_dict(
 
     if unexpected_keys:
         err_msg.append(
-            'unexpected key in source state_dict: {", ".join(unexpected_keys)}\n'
+            'unexpected key in source state_dict: {", ".join(unexpected_keys)}\n',
         )
     if missing_keys:
         err_msg.append(
-            f'missing keys in source state_dict: {", ".join(missing_keys)}\n'
+            f'missing keys in source state_dict: {", ".join(missing_keys)}\n',
         )
 
     if len(err_msg) > 0:
@@ -92,9 +92,9 @@ def load_state_dict(
 def load_checkpoint(
     model: torch.nn.Module,
     filename: str,
-    map_location: Optional[str] = None,
+    map_location: str | None = None,
     strict: bool = True,
-    logger: Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
     revise_keys: list = [(r"^module\.", "")],
 ) -> dict:
     """
@@ -120,10 +120,7 @@ def load_checkpoint(
         raise RuntimeError(f"No state_dict found in checkpoint file {filename}")
 
     # get state_dict from checkpoint
-    if "state_dict" in checkpoint:
-        state_dict = checkpoint["state_dict"]
-    else:
-        state_dict = checkpoint
+    state_dict = checkpoint["state_dict"] if "state_dict" in checkpoint else checkpoint
 
     # strip prefix of state_dict
     for p, r in revise_keys:
@@ -152,7 +149,7 @@ def weights_to_cpu(state_dict: dict) -> dict:
 
 
 def _save_to_state_dict(
-    module: torch.nn.Module, destination: dict, prefix: str, keep_vars: bool
+    module: torch.nn.Module, destination: dict, prefix: str, keep_vars: bool,
 ) -> None:
     """
     Saves module state to `destination` dictionary.
@@ -175,7 +172,7 @@ def _save_to_state_dict(
 
 def get_state_dict(
     module: torch.nn.Module,
-    destination: Optional[Dict[Any, Any]] = None,
+    destination: dict[Any, Any] | None = None,
     prefix: str = "",
     keep_vars: bool = False,
 ) -> dict:
@@ -208,7 +205,7 @@ def get_state_dict(
         destination = OrderedDict()
         destination._metadata = OrderedDict()  # type: ignore
 
-    destination._metadata[prefix[:-1]] = local_metadata = dict(version=module._version)  # type: ignore
+    destination._metadata[prefix[:-1]] = local_metadata = {"version": module._version}  # type: ignore
     _save_to_state_dict(module, destination, prefix, keep_vars)
 
     for name, child in module._modules.items():
@@ -225,7 +222,7 @@ def get_state_dict(
 def save_checkpoint(
     model: torch.nn.Module,
     filename: PathLike | str,
-    meta: Optional[Dict[str, Any]] = None,
+    meta: dict[str, Any] | None = None,
     optimizer=None,
 ) -> None:
     """
