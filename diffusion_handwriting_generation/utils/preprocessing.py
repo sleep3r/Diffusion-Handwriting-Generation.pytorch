@@ -58,5 +58,5 @@ def remove_whitespace(
 
     if remove_middle:
         return img[rows[0]][:, cols[0]]
-    rows, cols = rows[0], cols[0]
-    return img[rows[0] : rows[-1], cols[0] : cols[-1]]
+    rows, cols = rows[0], cols[0]  # type: ignore
+    return img[rows[0] : rows[-1], cols[0] : cols[-1]]  # type: ignore

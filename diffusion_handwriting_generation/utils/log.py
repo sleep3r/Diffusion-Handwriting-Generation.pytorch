@@ -53,7 +53,7 @@ def get_logger(name, cfg: DLConfig, meta: dict, log_level=logging.INFO):
         # provide an interface to change the file mode to the default
         # behaviour.
         file_handler = logging.FileHandler(log_file, "w")
-        handlers.append(file_handler)
+        handlers.append(file_handler)  # type: ignore
 
     FORMAT = "%(asctime)s - [%(levelname)s] %(message)s"
     formatter = logging.Formatter(FORMAT)

@@ -29,7 +29,10 @@ def parse_strokes_xml(xml_path: PathLike | str) -> np.ndarray:
         raise ValueError("No StrokeSet element found in XML file")
 
     # Extract the strokes from the StrokeSet element
-    stroke_x, stroke_y, stroke_time, stroke_end = [], [], [], []
+    stroke_x: list = []
+    stroke_y: list = []
+    stroke_time: list = []
+    stroke_end: list = []
 
     prev = None
     for stroke_elem in stroke_set.findall("Stroke"):
@@ -53,8 +56,8 @@ def parse_strokes_xml(xml_path: PathLike | str) -> np.ndarray:
             stroke_end[-1] = True
         else:
             stroke_end = [True]
-            stroke_x = [prev[0]]
-            stroke_y = [prev[1]]
+            stroke_x = [prev[0]]  # type: ignore
+            stroke_y = [prev[1]]  # type: ignore
             stroke_time = [0]
 
     strokes = np.array([stroke_x, stroke_y, stroke_end, stroke_time], dtype=float).T

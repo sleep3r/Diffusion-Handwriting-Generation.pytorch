@@ -75,7 +75,7 @@ class IAMDataset(Dataset):
                 raw_text = copy.deepcopy(text)
 
                 strokes = parse_strokes_xml(strokes_path / f"{sample}.xml")
-                strokes = pad_stroke_seq(strokes, maxlength=self.max_seq_len)
+                strokes = pad_stroke_seq(strokes, maxlength=self.max_seq_len)  # type: ignore
 
                 text = self.tokenizer.encode(text)
                 zeros_text = np.zeros((self.max_text_len - len(text),))

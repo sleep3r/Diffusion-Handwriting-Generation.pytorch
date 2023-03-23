@@ -16,7 +16,7 @@ def load_state_dict(
     module: torch.nn.Module,
     state_dict: OrderedDict,
     strict: bool = True,
-    logger: logging.Logger = None,
+    logger: Optional[logging.Logger] = None,
 ) -> None:
     """
     Loads state_dict to a module.
@@ -40,7 +40,7 @@ def load_state_dict(
     metadata = getattr(state_dict, "_metadata", None)
     state_dict = state_dict.copy()
     if metadata is not None:
-        state_dict._metadata = metadata
+        state_dict._metadata = metadata  # type: ignore
 
     # use _load_from_state_dict to enable checkpoint version control
     def load(module, prefix=""):
@@ -66,7 +66,7 @@ def load_state_dict(
                 load(child, prefix + name + ".")
 
     load(module)
-    load = None  # break load -> load reference cycle
+    load = None  # type: ignore # break load -> load reference cycle
 
     # ignore "num_batches_tracked" of BN layers
     missing_keys = [key for key in all_missing_keys if "num_batches_tracked" not in key]
@@ -82,7 +82,7 @@ def load_state_dict(
 
     if len(err_msg) > 0:
         err_msg.insert(0, "The model and loaded state dict do not match exactly\n")
-        err_msg = "\n".join(err_msg)
+        err_msg = "\n".join(err_msg)  # type: ignore
         if strict:
             raise RuntimeError(err_msg)
         elif logger is not None:
@@ -92,9 +92,9 @@ def load_state_dict(
 def load_checkpoint(
     model: torch.nn.Module,
     filename: str,
-    map_location: str = None,
+    map_location: Optional[str] = None,
     strict: bool = True,
-    logger: logging.Logger = None,
+    logger: Optional[logging.Logger] = None,
     revise_keys: list = [(r"^module\.", "")],
 ) -> dict:
     """
@@ -133,21 +133,21 @@ def load_checkpoint(
     return checkpoint
 
 
-def weights_to_cpu(state_dict: OrderedDict) -> OrderedDict:
+def weights_to_cpu(state_dict: dict) -> dict:
     """
     Copies a model state_dict to cpu.
 
     Args:
-        state_dict (OrderedDict): Model weights on GPU.
+        state_dict (dict): model weights on GPU.
 
     Returns:
-        OrderedDict: Model weights on GPU.
+        dict: model weights on GPU.
     """
     state_dict_cpu = OrderedDict()
     for key, val in state_dict.items():
         state_dict_cpu[key] = val.cpu()
     # Keep metadata in state_dict
-    state_dict_cpu._metadata = getattr(state_dict, "_metadata", OrderedDict())
+    state_dict_cpu._metadata = getattr(state_dict, "_metadata", OrderedDict())  # type: ignore
     return state_dict_cpu
 
 
@@ -175,10 +175,10 @@ def _save_to_state_dict(
 
 def get_state_dict(
     module: torch.nn.Module,
-    destination: dict = None,
+    destination: Optional[Dict[Any, Any]] = None,
     prefix: str = "",
     keep_vars: bool = False,
-) -> OrderedDict:
+) -> dict:
     """
     Returns a dictionary containing a whole state of the module.
     Both parameters and persistent buffers (e.g. running averages) are
@@ -201,12 +201,12 @@ def get_state_dict(
     # recursively check parallel module in case that the model has a
     # complicated structure, e.g., nn.Module(nn.Module(DDP))
     if hasattr(module, "module"):
-        module = module.module
+        module = module.module  # type: ignore
 
     # below is the same as torch.nn.Module.state_dict()
     if destination is None:
         destination = OrderedDict()
-        destination._metadata = OrderedDict()
+        destination._metadata = OrderedDict()  # type: ignore
 
     destination._metadata[prefix[:-1]] = local_metadata = dict(version=module._version)  # type: ignore
     _save_to_state_dict(module, destination, prefix, keep_vars)
@@ -219,7 +219,7 @@ def get_state_dict(
         hook_result = hook(module, destination, prefix, local_metadata)
         if hook_result is not None:
             destination = hook_result
-    return destination
+    return destination  # type: ignore
 
 
 def save_checkpoint(

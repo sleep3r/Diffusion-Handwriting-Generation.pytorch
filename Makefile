@@ -14,3 +14,6 @@ test:
 format:
 	@isort $(PACKAGE_NAME)
 	@black $(PACKAGE_NAME)
+
+lint:
+	@mypy $(PACKAGE_NAME)

@@ -101,10 +101,10 @@ def log_artifacts(cfg: DLConfig, meta: dict) -> None:
         json.dump(meta, f, indent=4)
 
 
-def prepare_exp(cfg: DLConfig) -> (dict, logging.Logger):
+def prepare_exp(cfg: DLConfig) -> tuple[dict, logging.Logger]:
     # init the meta dict to record some important information
     # such as environment info and seed, which will be logged
-    meta = {}
+    meta: dict = {}
 
     # create work_dir
     meta = create_workdir(cfg, meta)
