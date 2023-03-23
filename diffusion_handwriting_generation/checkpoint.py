@@ -149,7 +149,10 @@ def weights_to_cpu(state_dict: dict) -> dict:
 
 
 def _save_to_state_dict(
-    module: torch.nn.Module, destination: dict, prefix: str, keep_vars: bool,
+    module: torch.nn.Module,
+    destination: dict,
+    prefix: str,
+    keep_vars: bool,
 ) -> None:
     """
     Saves module state to `destination` dictionary.
@@ -205,7 +208,9 @@ def get_state_dict(
         destination = OrderedDict()
         destination._metadata = OrderedDict()  # type: ignore
 
-    destination._metadata[prefix[:-1]] = local_metadata = {"version": module._version}  # type: ignore
+    destination._metadata[prefix[:-1]] = local_metadata = {  # type: ignore
+        "version": module._version
+    }
     _save_to_state_dict(module, destination, prefix, keep_vars)
 
     for name, child in module._modules.items():
@@ -263,7 +268,8 @@ def load_model(
 
     Args:
         config_path (str): config file path;
-        checkpoint_path (str): checkpoint path. If left as None, the model will not load any weights.
+        checkpoint_path (str): checkpoint path. If left as None,
+                               the model will not load any weights.
         cfg_options (dict): options to override some settings in the used config.
 
     Returns:

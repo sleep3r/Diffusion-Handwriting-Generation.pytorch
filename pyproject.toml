@@ -39,57 +39,5 @@ sections=["FUTURE","STDLIB","THIRDPARTY","FIRSTPARTY","LOCALFOLDER"]
 
 
 [tool.ruff]
-# not enabled ANN101, EM, RUF, D, ERA, T20, A, N
-extend-ignore = [
-  "B019",
-  "S101",
-  "PD901",
-  "PD002",
-  "PD015",
-  "PD009",
-  "PD008",
-  "RET504",
-  "PGH004",
-  "PLR2004",
-  "E741",
-  "E402",
-  "S108",
-  "PLR0913",
-  "RET505",
-  "S104",
-]
-extend-select = [
-  "C",
-  "B",
-  "UP",
-  "W",
-  "I",
-  "YTT",
-  "S",
-  "FBT",
-  "C40",
-  "T10",
-  "ICN",
-  "RET",
-  "SIM",
-  "TID",
-  "PD",
-  "PGH",
-  "PLC",
-  "PLE",
-  "PLR",
-  "PLW",
-  "PIE",
-  "BLE",
-  "T",
-  "COM",
-  "DTZ",
-  "Q",
-  "ICN",
-  "ISC",
-  "BLE",
-  "C90",
-  "E",
-  "F"
-]
+ignore = ["E741"]
 line-length = 100
