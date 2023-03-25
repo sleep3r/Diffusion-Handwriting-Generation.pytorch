@@ -1,9 +1,9 @@
 # mypy: ignore-errors
 
+from collections import defaultdict
 import os
 import subprocess
 import sys
-from collections import defaultdict
 
 import torch
 

@@ -1,10 +1,10 @@
+from datetime import datetime
+from getpass import getuser
 import json
 import logging
 import os
-import random
-from datetime import datetime
-from getpass import getuser
 from pathlib import Path
+import random
 from socket import gethostname
 
 import git

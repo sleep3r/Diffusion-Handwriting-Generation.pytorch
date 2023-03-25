@@ -1,4 +1,3 @@
-
 import torch
 
 from diffusion_handwriting_generation.conditioning import AffineTransformLayer

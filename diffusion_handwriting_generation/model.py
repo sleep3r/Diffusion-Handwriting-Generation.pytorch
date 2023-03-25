@@ -137,7 +137,8 @@ class DiffusionModel(torch.nn.Module):
 
         # Pen lifts output layer with sigmoid activation
         self.pen_lifts_dense = torch.nn.Sequential(
-            torch.nn.Linear(c1, 1), torch.nn.Sigmoid(),
+            torch.nn.Linear(c1, 1),
+            torch.nn.Sigmoid(),
         )
 
     def _pool(self, x: torch.Tensor) -> torch.Tensor:

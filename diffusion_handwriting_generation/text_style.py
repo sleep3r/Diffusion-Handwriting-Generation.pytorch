@@ -21,7 +21,8 @@ class StyleExtractor(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.mobilenet = models.mobilenet_v2(
-            weights=models.MobileNet_V2_Weights.DEFAULT, progress=True,
+            weights=models.MobileNet_V2_Weights.DEFAULT,
+            progress=True,
         ).to(self.device)
         self.local_pool = nn.AvgPool2d(kernel_size=(3, 3), stride=1)
         self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))

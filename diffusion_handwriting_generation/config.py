@@ -1,6 +1,6 @@
 import io
-import pydoc
 from os import PathLike
+import pydoc
 from typing import Any
 
 from addict import Dict
@@ -55,7 +55,8 @@ class DLConfig:
 
 
 def merge_configs(
-    base_cfg: CommentedMap, cfg: CommentedMap | dict,
+    base_cfg: CommentedMap,
+    cfg: CommentedMap | dict,
 ) -> CommentedMap:
     """Merges base config with the new one."""
     for k, v in cfg.items():
