@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "diffusion-handwriting-generation-pytorch"
 version = "0.1.0"
-description = ""
+description = "Diffusion Model for Online Handwriting Generation"
 authors = ["Aleksandr Kalashnikov <sleep3r@icloud.com>"]
 readme = "README.md"
 packages = [{include = "diffusion_handwriting_generation"}]
@@ -17,13 +17,10 @@ torch = "^1.13.1"
 torchvision = "^0.14.1"
 matplotlib = "^3.6.3"
 opencv-python = "^4.7.0.68"
-jupyter = "^1.0.0"
 gitpython = "^3.1.30"
-pandas = "^1.5.3"
 pytest = "^7.2.1"
 tqdm = "^4.64.1"
 mypy = "^1.1.1"
-wemake-python-styleguide = "^0.17.0"
 ruff = "^0.0.258"
 
 

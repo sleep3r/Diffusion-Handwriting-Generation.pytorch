@@ -18,147 +18,151 @@ from diffusion_handwriting_generation.utils.experiment import log_artifacts, pre
 from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 
 
-def train_step(
-    cfg: DLConfig,
-    device: torch.device,
-    x: torch.Tensor,
-    pen_lifts: torch.Tensor,
-    text: torch.Tensor,
-    style_vectors: torch.Tensor,
-    glob_args: tuple[DiffusionModel, torch.Tensor, list[float], InvSqrtScheduledOptim],
-) -> None:
-    model, alpha_set, train_loss, optimizer = glob_args
+class TrainingLoop:
+    def __init__(self, cfg: DLConfig):
+        self.cfg = cfg
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    alphas = get_alphas(len(x), alpha_set)
-    eps = torch.randn_like(x)
+    def train_step(
+        self,
+        batch: torch.Tensor,
+        model: DiffusionModel,
+        alpha_set: torch.Tensor,
+        train_loss: list,
+        optimizer: InvSqrtScheduledOptim,
+    ):
+        x, pen_lifts, text, style_vectors = self.process_batch(batch)
 
-    x_perturbed = (
-        torch.sqrt(alphas).unsqueeze(-1) * x
-        + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
-    )
+        alphas = get_alphas(len(x), alpha_set)
+        eps = torch.randn_like(x)
 
-    pen_lifts = pen_lifts.to(device)
-    text = text.to(device)
-    style_vectors = style_vectors.to(device)
-    x_perturbed = x_perturbed.to(device)
-    alphas = alphas.to(device)
-    eps = eps.to(device)
-
-    strokes_pred, pen_lifts_pred, att = model(
-        x_perturbed,
-        text,
-        torch.sqrt(alphas),
-        style_vectors,
-    )
-
-    loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas)
-
-    optimizer.zero_grad()
-    loss.backward()
-
-    if cfg.training_args.clip_grad is not None:
-        dispatch_clip_grad(
-            model.parameters(),
-            value=cfg.training_args.clip_grad,
+        x_perturbed = (
+            torch.sqrt(alphas).unsqueeze(-1) * x
+            + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
         )
 
-    optimizer.step_and_update_lr()
+        strokes_pred, pen_lifts_pred, att = model(
+            x_perturbed,
+            text,
+            torch.sqrt(alphas),
+            style_vectors,
+        )
 
-    train_loss.append(loss.item())
+        loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas)
 
+        optimizer.zero_grad()
+        loss.backward()
 
-def train(cfg: DLConfig, meta: dict, logger: logging.Logger) -> None:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = DiffusionModel(
-        num_layers=cfg.training_args.att_layers_num,
-        c1=cfg.training_args.channels,
-        c2=cfg.training_args.channels * 3 // 2,
-        c3=cfg.training_args.channels * 2,
-        drop_rate=cfg.training_args.dropout,
-    )
-    model.to(device)
-    model.train()
-
-    optimizer = InvSqrtScheduledOptim(
-        optimizer=object_from_dict(cfg.optimizer, params=model.parameters()),
-        lr_mul=1.0,
-        d_model=cfg.training_args.channels,
-        n_warmup_steps=cfg.training_args.warmup_steps,
-    )
-
-    logger.info("Loading data...")
-    train_dataset = IAMDataset(
-        data_dir=cfg.experiment.data_dir,
-        kind="train",
-        splits_file=cfg.experiment.splits_file,
-        max_files=cfg.training_args.max_files,
-        **cfg.dataset_args,
-    )
-
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=cfg.training_args.batch_size,
-        num_workers=cfg.training_args.num_workers,
-        shuffle=True,
-        pin_memory=True,
-    )
-
-    s = time.time()
-    train_loss: list[float] = []
-    beta_set = get_beta_set()
-    alpha_set = torch.cumprod(1 - beta_set, dim=0)
-
-    logger.info(
-        f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n',
-    )
-    try:
-        count = 0
-        while True:
-            batch = next(iter(train_loader))
-            count += 1
-
-            strokes, text, style_vectors = (
-                batch["strokes"],
-                batch["text"],
-                batch["style"],
+        if self.cfg.training_args.clip_grad is not None:
+            dispatch_clip_grad(
+                model.parameters(),
+                value=self.cfg.training_args.clip_grad,
             )
-            strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
 
-            glob_args = model, alpha_set, train_loss, optimizer
-            train_step(cfg, device, strokes, pen_lifts, text, style_vectors, glob_args)
+        optimizer.step_and_update_lr()
 
-            if (count + 1) % cfg.training_args.log_freq == 0:
-                logger.info(
-                    f"Step {count + 1} | "
-                    f"Loss: {sum(train_loss) / len(train_loss):.3f} | "
-                    f"Time: {time.time() - s:.3f} sec",
-                )
-                train_loss = []
+        train_loss.append(loss.item())
 
-            if (count + 1) % cfg.training_args.save_freq == 0:
-                checkpoint_path = meta["exp_dir"] / f"checkpoint_{count + 1}.pth"
-                logger.info("Saving checkpoint...")
-                save_checkpoint(model, checkpoint_path)
+    def process_batch(self, batch):
+        strokes, text, style_vectors = (
+            batch["strokes"],
+            batch["text"],
+            batch["style"],
+        )
+        strokes, pen_lifts = strokes[:, :, :2], strokes[:, :, 2]
 
-            if count >= cfg.training_args.steps:
-                logger.info("Training finished, saving model weights.")
-                model_path = meta["exp_dir"] / "model_final.pth"
-                torch.save(model.state_dict(), model_path)
-                logger.info(str(model_path))
-                break
-    except KeyboardInterrupt:
-        logger.info("Training interrupted by user.")
-        save_checkpoint(model, meta["exp_dir"] / "checkpoint_last.pth")
-        torch.save(model.state_dict(), meta["exp_dir"] / "model_last.pth")
+        strokes = strokes.to(self.device)
+        pen_lifts = pen_lifts.to(self.device)
+        text = text.to(self.device)
+        style_vectors = style_vectors.to(self.device)
+        return strokes, pen_lifts, text, style_vectors
+
+    def train(self, meta: dict, logger: logging.Logger):
+        model, optimizer, train_loader = self.prepare_training()
+        s = time.time()
+        train_loss: list[float] = []
+        beta_set = get_beta_set()
+        alpha_set = torch.cumprod(1 - beta_set, dim=0)
+
+        logger.info(
+            f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n',
+        )
+        try:
+            count = 0
+            while True:
+                batch = next(iter(train_loader))
+                count += 1
+
+                self.train_step(batch, model, alpha_set, train_loss, optimizer)
+
+                if (count + 1) % self.cfg.training_args.log_freq == 0:
+                    logger.info(
+                        f"Step {count + 1} | "
+                        f"Loss: {sum(train_loss) / len(train_loss):.3f} | "
+                        f"Time: {time.time() - s:.3f} sec",
+                    )
+                    train_loss = []
+
+                if (count + 1) % self.cfg.training_args.save_freq == 0:
+                    checkpoint_path = meta["exp_dir"] / f"checkpoint_{count + 1}.pth"
+                    logger.info("Saving checkpoint...")
+                    save_checkpoint(model, checkpoint_path)
+
+                if count >= self.cfg.training_args.steps:
+                    logger.info("Training finished, saving model weights.")
+                    model_path = meta["exp_dir"] / "model_final.pth"
+                    torch.save(model.state_dict(), model_path)
+                    logger.info(str(model_path))
+                    break
+        except KeyboardInterrupt:
+            logger.info("Training interrupted by user.")
+            save_checkpoint(model, meta["exp_dir"] / "checkpoint_last.pth")
+            torch.save(model.state_dict(), meta["exp_dir"] / "model_last.pth")
+
+    def prepare_training(self):
+        model = DiffusionModel(
+            num_layers=self.cfg.training_args.att_layers_num,
+            c1=self.cfg.training_args.channels,
+            c2=self.cfg.training_args.channels * 3 // 2,
+            c3=self.cfg.training_args.channels * 2,
+            drop_rate=self.cfg.training_args.dropout,
+        )
+        model.to(self.device)
+        model.train()
+
+        optimizer = InvSqrtScheduledOptim(
+            optimizer=object_from_dict(self.cfg.optimizer, params=model.parameters()),
+            lr_mul=1.0,
+            d_model=self.cfg.training_args.channels,
+            n_warmup_steps=self.cfg.training_args.warmup_steps,
+        )
+
+        train_dataset = IAMDataset(
+            data_dir=self.cfg.experiment.data_dir,
+            kind="train",
+            splits_file=self.cfg.experiment.splits_file,
+            max_files=self.cfg.training_args.max_files,
+            **self.cfg.dataset_args,
+        )
+
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=self.cfg.training_args.batch_size,
+            num_workers=self.cfg.training_args.num_workers,
+            shuffle=True,
+            pin_memory=True,
+        )
+        return model, optimizer, train_loader
 
 
 def main(cfg: DLConfig) -> None:
+    train_loop = TrainingLoop(cfg)
+
     meta, logger = prepare_exp(cfg)
 
     logger.info(f"Config:\n{cfg.pretty_text}\n")
 
-    train(cfg, meta, logger)
+    train_loop.train(meta, logger)
 
     log_artifacts(cfg, meta)
 
