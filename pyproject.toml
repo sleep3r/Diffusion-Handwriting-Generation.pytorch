@@ -33,7 +33,7 @@ build-backend = "poetry.core.masonry.api"
 multi_line_output=3
 include_trailing_comma=true
 force_sort_within_sections=true
-line_length = 90
+line_length = 100
 sections=["FUTURE","STDLIB","THIRDPARTY","FIRSTPARTY","LOCALFOLDER"]
 
 

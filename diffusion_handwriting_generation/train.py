@@ -41,16 +41,14 @@ class TrainingLoop:
             + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
         )
 
+        optimizer.zero_grad()
         strokes_pred, pen_lifts_pred, att = model(
             x_perturbed,
             text,
             torch.sqrt(alphas),
             style_vectors,
         )
-
         loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas)
-
-        optimizer.zero_grad()
         loss.backward()
 
         if self.cfg.training_args.clip_grad is not None:

@@ -188,15 +188,13 @@ def get_state_dict(
     structure, e.g., nn.Module(nn.Module(DDP)).
 
     Args:
-        module (nn.Module): The module to generate state_dict.
-        destination (OrderedDict): Returned dict for the state of the
-            module.
-        prefix (str): Prefix of the key.
-        keep_vars (bool): Whether to keep the variable property of the
-            parameters. Default: False.
+        module (nn.Module): module to generate state_dict;
+        destination (OrderedDict): returned dict for the state of the module;
+        prefix (str): prefix of the key;
+        keep_vars (bool): whether to keep the variable property of the parameters. Default: False.
 
     Returns:
-        dict: A dictionary containing a whole state of the module.
+        dict: dictionary containing a whole state of the module.
     """
     # recursively check parallel module in case that the model has a
     # complicated structure, e.g., nn.Module(nn.Module(DDP))
@@ -236,12 +234,9 @@ def save_checkpoint(
     ``optimizer`` and ``meta``. By default, ``meta`` will contain version and time info.
 
     Args:
-        model (Module): Module whose params are to be saved.
-        filename (str): Checkpoint filename.
-        optimizer (:obj:`Optimizer`, optional): Optimizer to be saved.
-        file_client_args (dict, optional): Arguments to instantiate a
-            FileClient. See :class:`mmcv.fileio.FileClient` for details.
-            Default: None.
+        model (Module): module whose params are to be saved;
+        filename (str): checkpoint filename.
+        optimizer (:obj:`Optimizer`, optional): optimizer to be saved.
     """
     if hasattr(model, "module"):
         model = model.module  # type: ignore
