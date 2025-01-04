@@ -1,7 +1,7 @@
 experiment:
   name: 'diffusion_handwriting_generation'
-  work_dir: '/Users/20227685/Desktop/IAM/runs'
-  data_dir: '/Users/20227685/Desktop/IAM/data'
+  work_dir: '/Users/alexander/Desktop/stuff/Diffusion-Handwriting-Generation.pytorch/data/runs'
+  data_dir: '/Users/alexander/Desktop/stuff/Diffusion-Handwriting-Generation.pytorch/data'
   splits_file: './data/splits.json'
 
   seed: 54321
