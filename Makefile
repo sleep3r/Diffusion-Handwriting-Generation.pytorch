@@ -1,6 +1,6 @@
 PACKAGE_NAME ?= diffusion_handwriting_generation
 
-.PHONY: lint format test train install
+.PHONY: lint format test train install sync prepare_data
 
 install:
 	uv sync
@@ -10,6 +10,9 @@ train:
 
 test:
 	uv run pytest -s tests
+
+prepare_data:
+	uv run python prepare_data.py
 
 format:
 	@uv run ruff check $(PACKAGE_NAME) --select I --fix

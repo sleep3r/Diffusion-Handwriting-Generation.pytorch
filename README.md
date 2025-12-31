@@ -10,32 +10,51 @@
 
 ----
 
-## Data preparation:
+## Data preparation
 
-Download [IAM Handwriting Database](https://fki.tic.heia-fr.ch/databases/iam-handwriting-database) and extract it
-to the `data/` directory with the following structure:
+### 1. Download IAM Handwriting Database
 
-```
+You need to download the following files from [IAM Handwriting Database](https://fki.tic.heia-fr.ch/databases/iam-handwriting-database) (registration required):
+
+- **ascii.tgz** - Contains forms.txt, lines.txt, sentences.txt
+- **lineImages.tgz** - Line images as PNG files  
+- **lineStrokes-all.tar.gz** - Individual XML files with stroke data for each line ⚠️ **Important:** Download `lineStrokes-all.tar.gz`, NOT `forms.tgz`
+
+### 2. Extract files
+
+Extract the downloaded archives to the `data/` directory with the following structure:
+
+```bash
 data/
 ├── ascii/
 │   ├── forms.txt
 │   ├── lines.txt
 │   └── sentences.txt
 ├── lineImages/
-│   └── (png files organized by form)
+│   └── a01/a01-000u/
+│       ├── a01-000u-00.png
+│       ├── a01-000u-01.png
+│       └── ...
 └── lineStrokes/
-    └── (xml files organized by form)
+    └── a01/a01-000u/
+        ├── a01-000u-00.xml  (with StrokeSet data)
+        ├── a01-000u-01.xml
+        └── ...
 ```
+
+**Important:** `lineStrokes/` must contain individual XML files for each line (e.g., `a01-000u-00.xml`) with `<StrokeSet>` elements containing stroke points, NOT form-level metadata XML files.
+
+### 3. Prepare text files
 
 After extracting the data, run the data preparation script to create individual form text files:
 
 ```bash
-uv run python prepare_data.py
+make prepare_data
 ```
 
 This will parse `lines.txt` and create structured text files in `data/ascii/` directory (e.g., `data/ascii/a01/a01-000u/a01-000u.txt`).
 
-## Install:
+## Install
 
 This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
 
@@ -47,7 +66,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 make install
 ```
 
-## Train:
+## Train
+
 First, configure your training in `configs/<cfg>.yml`:
 
 ```yml
@@ -63,7 +83,7 @@ Then, run:
 make train CONFIG=<cfg>.yml
 ```
 
-## References:
+## References
 
 |Papers|
 |---|
