@@ -21,7 +21,10 @@ from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
 class TrainingLoop:
     def __init__(self, cfg: DLConfig):
         self.cfg = cfg
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        else:
+            self.device = torch.device("cpu")
 
     def train_step(
         self,
@@ -33,7 +36,7 @@ class TrainingLoop:
     ):
         x, pen_lifts, text, style_vectors = self.process_batch(batch)
 
-        alphas = get_alphas(len(x), alpha_set)
+        alphas = get_alphas(len(x), alpha_set).to(self.device)
         eps = torch.randn_like(x)
 
         x_perturbed = (
@@ -41,7 +44,7 @@ class TrainingLoop:
         )
 
         optimizer.zero_grad()
-        strokes_pred, pen_lifts_pred, att = model(
+        strokes_pred, pen_lifts_pred, _ = model(
             x_perturbed,
             text,
             torch.sqrt(alphas),
