@@ -18,38 +18,25 @@ class EncoderLayer(torch.nn.Module):
     ):
         super().__init__()
 
-        # Activation function
         self.act = torch.nn.SiLU()
-
-        # Positional embeddings generators
         self.text_pe_gen = PosEmbeddings(d_out, pos_factor=pos_factor)
         self.stroke_pe_gen = PosEmbeddings(d_out, pos_factor=pos_factor)
-
-        # Dropout layer
         self.drop = torch.nn.Dropout(drop_rate)
-
-        # Layer normalization
         self.lnorm = torch.nn.LayerNorm(d_out, eps=1e-6)
-
-        # Fully-connected layers
         self.text_dense = torch.nn.Linear(d_inp, d_out)
         self.ffn = ff_network(d_out, d_out, hidden=d_out * 2)
-
-        # Multi-head attention
         self.mha = MultiHeadAttention(d_out, num_heads)
         self.mha2 = MultiHeadAttention(d_out, num_heads)
-
-        # Affine transformation layers
         self.affine0 = AffineTransformLayer(d_out)
         self.affine1 = AffineTransformLayer(d_out)
         self.affine2 = AffineTransformLayer(d_out)
         self.affine3 = AffineTransformLayer(d_out)
 
     def forward(self, x, text, sigma, text_mask):
+        """Expects [B, T, C] for both x and text."""
         text = self.text_dense(self.act(text))
         text = self.affine0(self.lnorm(text), sigma)
 
-        # Generate PE on the fly
         text_pe = self.text_pe_gen(torch.arange(text.size(1), device=text.device))
         text_pe = text + text_pe
 
@@ -92,44 +79,27 @@ class DiffusionModel(torch.nn.Module):
         """
         super().__init__()
 
-        # Input layer
         self.input_dense = torch.nn.Linear(2, c1)
-
-        # Sigma feedforward network
         self.sigma_ffn = ff_network(1, c1 // 4, hidden=2048)
 
-        # Encoder layers
+        # Encoder/decoder conv blocks work in [B, C, T]
         self.enc1 = ConvBlock(c1, c1, dils=(1, 2))
         self.enc2 = ConvBlock(c1, c2, dils=(1, 2))
-        self.enc3 = EncoderLayer(
-            c2 * 2,
-            c2,
-            num_heads=3,
-            drop_rate=drop_rate,
-            pos_factor=4,
-        )
+        self.enc3 = EncoderLayer(c2 * 2, c2, num_heads=3, drop_rate=drop_rate, pos_factor=4)
         self.enc4 = ConvBlock(c2, c3, dils=(1, 2))
-        self.enc5 = EncoderLayer(
-            c2 * 2,
-            c3,
-            num_heads=4,
-            drop_rate=drop_rate,
-            pos_factor=2,
-        )
+        self.enc5 = EncoderLayer(c2 * 2, c3, num_heads=4, drop_rate=drop_rate, pos_factor=2)
 
-        # Pooling and upsampling
+        # Pool/upsample work in [B, C, T]
         self.pool = torch.nn.AvgPool1d(2)
         self.upsample = torch.nn.Upsample(scale_factor=2, mode="nearest")
 
-        # Skip convolutions
+        # Skip convs work in [B, C, T]
         self.skip_conv1 = torch.nn.Conv1d(c1, c2, kernel_size=3, padding="same")
         self.skip_conv2 = torch.nn.Conv1d(c2, c3, kernel_size=3, padding="same")
         self.skip_conv3 = torch.nn.Conv1d(c3, c2 * 2, kernel_size=3, padding="same")
 
-        # Text style model
         self.text_style_model = TextStyleEncoder(c2 * 2, c2 * 4)
 
-        # Attention layers
         self.att_dense = torch.nn.Linear(c1 * 2, c2 * 2)
         self.att_layers = torch.nn.ModuleList(
             [
@@ -138,28 +108,15 @@ class DiffusionModel(torch.nn.Module):
             ],
         )
 
-        # Decoder layers
         self.dec3 = ConvBlock(c2 * 2, c3, dils=(1, 2))
         self.dec2 = ConvBlock(c3, c2, dils=(1, 1))
         self.dec1 = ConvBlock(c2, c1, dils=(1, 1))
 
-        # Strokes output layer
         self.output_dense = torch.nn.Linear(c1, 2)
-
-        # Pen lifts output layer with sigmoid activation
         self.pen_lifts_dense = torch.nn.Sequential(
             torch.nn.Linear(c1, 1),
             torch.nn.Sigmoid(),
         )
-
-    def _pool(self, x: torch.Tensor) -> torch.Tensor:
-        return self.pool(x.transpose(2, 1)).transpose(2, 1)
-
-    def _upsample(self, x: torch.Tensor) -> torch.Tensor:
-        return self.upsample(x.transpose(2, 1)).transpose(2, 1)
-
-    def _conv(self, x: torch.Tensor, conv: torch.nn.Conv1d) -> torch.Tensor:
-        return conv(x.transpose(2, 1)).transpose(2, 1)
 
     def forward(self, strokes, text, sigma, style_vector):
         """
@@ -178,34 +135,48 @@ class DiffusionModel(torch.nn.Module):
         text_mask = create_padding_mask(text)
         text = self.text_style_model(text, style_vector, sigma)
 
+        # Input: [B, T, 2] -> [B, T, C1]
         x = self.input_dense(strokes)
+        # Convert to [B, C, T] for conv blocks
+        x = x.transpose(1, 2)
+
+        # Encoder path (all in [B, C, T])
         h1 = self.enc1(x, sigma)
-        h2 = self._pool(h1)
+        h2 = self.pool(h1)
 
         h2 = self.enc2(h2, sigma)
-        h2, _ = self.enc3(h2, text, sigma, text_mask)
-        h3 = self._pool(h2)
+        # enc3 needs [B, T, C]
+        h2_t = h2.transpose(1, 2)
+        h2_t, _ = self.enc3(h2_t, text, sigma, text_mask)
+        h2 = h2_t.transpose(1, 2)
+        h3 = self.pool(h2)
 
         h3 = self.enc4(h3, sigma)
-        h3, _ = self.enc5(h3, text, sigma, text_mask)
-        x = self._pool(h3)
+        # enc5 needs [B, T, C]
+        h3_t = h3.transpose(1, 2)
+        h3_t, _ = self.enc5(h3_t, text, sigma, text_mask)
+        h3 = h3_t.transpose(1, 2)
+        x = self.pool(h3)
 
+        # Attention layers need [B, T, C]
+        x = x.transpose(1, 2)
         x = self.att_dense(x)
         for att_layer in self.att_layers:
             x, _ = att_layer(x, text, sigma, text_mask)
 
-        x = self._upsample(x)
-        x += self._conv(h3, self.skip_conv3)
+        # Decoder path (back to [B, C, T])
+        x = x.transpose(1, 2)
+        x = self.upsample(x) + self.skip_conv3(h3)
         x = self.dec3(x, sigma)
 
-        x = self._upsample(x)
-        x += self._conv(h2, self.skip_conv2)
+        x = self.upsample(x) + self.skip_conv2(h2)
         x = self.dec2(x, sigma)
 
-        x = self._upsample(x)
-        x += self._conv(h1, self.skip_conv1)
+        x = self.upsample(x) + self.skip_conv1(h1)
         x = self.dec1(x, sigma)
 
+        # Output: [B, C, T] -> [B, T, C] -> [B, T, 2]
+        x = x.transpose(1, 2)
         output = self.output_dense(x)
         pen_lifts = self.pen_lifts_dense(x).squeeze(-1)
         return output, pen_lifts, None

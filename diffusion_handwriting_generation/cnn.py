@@ -22,21 +22,14 @@ class ConvBlock(torch.nn.Module):
         """
         super().__init__()
 
-        # Activation function
         self.act = torch.nn.SiLU()
 
-        # Affine transformation layers
         self.affine1 = AffineTransformLayer(d_out // 2)
         self.affine2 = AffineTransformLayer(d_out)
         self.affine3 = AffineTransformLayer(d_out)
 
-        # Convolutional layers
-        self.conv_skip = torch.nn.Conv1d(
-            d_inp,
-            d_out,
-            kernel_size=3,
-            padding="same",
-        )
+        # Conv1d expects [B, C, T]
+        self.conv_skip = torch.nn.Conv1d(d_inp, d_out, kernel_size=3, padding="same")
         self.conv1 = torch.nn.Conv1d(
             d_inp,
             d_out // 2,
@@ -52,32 +45,42 @@ class ConvBlock(torch.nn.Module):
             padding="same",
         )
 
-        # Fully-connected layer
         self.fc = torch.nn.Linear(d_out, d_out)
-
-        # Dropout layer
         self.drop = torch.nn.Dropout(drop_rate)
 
-    def _conv(self, x: torch.Tensor, conv: torch.nn.Conv1d) -> torch.Tensor:
-        return conv(x.transpose(2, 1)).transpose(2, 1)
-
     def forward(self, x: torch.Tensor, alpha: torch.Tensor):
-        # Convert to channel-first once for convolutions to reduce transpose overhead
-        x_ch = x.transpose(1, 2)  # [B, C, T]
+        """
+        Forward pass. Expects [B, C, T] input, returns [B, C, T].
 
-        x_skip_ch = self.conv_skip(x_ch)
+        Args:
+            x: Input tensor [B, C, T]
+            alpha: Conditioning alpha [B, 1, C_alpha]
 
-        x1_ch = self.conv1(self.act(x_ch))
-        x1 = x1_ch.transpose(1, 2)  # back to [B, T, C] for affine
-        x1 = self.drop(self.affine1(x1, alpha))
+        Returns:
+            Output tensor [B, C, T]
+        """
+        # Skip connection
+        x_skip = self.conv_skip(x)
 
-        x2_ch = self.conv2(self.act(x1.transpose(1, 2)))
-        x2 = x2_ch.transpose(1, 2)
-        x2 = self.drop(self.affine2(x2, alpha))
+        # First conv path
+        x = self.conv1(self.act(x))
+        # Convert to [B, T, C] for affine
+        x = x.transpose(1, 2).contiguous()
+        x = self.drop(self.affine1(x, alpha))
 
-        x3 = self.fc(self.act(x2))
-        x3 = self.drop(self.affine3(x3, alpha))
+        # Back to [B, C, T] for conv
+        x = x.transpose(1, 2).contiguous()
+        x = self.conv2(self.act(x))
 
-        # Bring skip connection back to channel-last and add
-        x_out = x3 + x_skip_ch.transpose(1, 2)
-        return x_out
+        # To [B, T, C] for affine
+        x = x.transpose(1, 2).contiguous()
+        x = self.drop(self.affine2(x, alpha))
+
+        # FC and final affine
+        x = self.fc(self.act(x))
+        x = self.drop(self.affine3(x, alpha))
+
+        # Back to [B, C, T] and add skip
+        x = x.transpose(1, 2).contiguous()
+        x += x_skip
+        return x
