@@ -9,11 +9,7 @@ from diffusion_handwriting_generation.utils.nn import ff_network, reshape_up
 
 
 class StyleExtractor(nn.Module):
-    """
-    Takes a grayscale image (with the last channel) with pixels [0, 255].
-    Rescales to [-1, 1] and repeats along the channel axis for 3 channels.
-    Uses a MobileNetV2 with pretrained weights from imagenet as initial weights.
-    """
+    """Extracts style features from handwriting images using MobileNetV2."""
 
     def __init__(self):
         super().__init__()
@@ -34,27 +30,20 @@ class StyleExtractor(nn.Module):
             param.requires_grad = False
 
     def forward(self, img_batch: np.ndarray) -> torch.Tensor:
-        """
-        Args:
-            img_batch (np.ndarray): tensor of shape (batch_size, 1, H, W).
-
-        Returns:
-            torch.Tensor: tensor of shape (batch_size, 1280).
-        """
+        """Extract style features from grayscale images."""
         x = torch.tensor(img_batch, dtype=torch.float32).to(self.device)
-
         x = (x / 127.5) - 1
-        x = torch.cat((x, x, x), dim=1)
+        x = x.repeat(1, 3, 1, 1)
 
         x = self.mobilenet.features(x)
         x = self.local_pool(x)
         x = self.global_avg_pool(x)
-        x = x.view(x.size(0), -1)
-        # setting back cpu to pin gpu later
-        return x.to("cpu")
+        return x.view(x.size(0), -1)
 
 
 class TextStyleEncoder(nn.Module):
+    """Encodes text with style conditioning using cross-attention."""
+
     def __init__(self, d_model, d_ff=512):
         super().__init__()
 

@@ -72,14 +72,12 @@ class IAMDataset(Dataset):
                 if len(text) >= self.max_text_len:
                     continue
 
-                raw_text = copy.deepcopy(text)
-
                 strokes = parse_strokes_xml(strokes_path / f"{sample}.xml")
                 strokes = pad_stroke_seq(strokes, maxlength=self.max_seq_len)  # type: ignore
 
-                text = self.tokenizer.encode(text)
-                zeros_text = np.zeros((self.max_text_len - len(text),))
-                text = np.concatenate((text, zeros_text))
+                encoded_text = self.tokenizer.encode(text)
+                zeros_text = np.zeros((self.max_text_len - len(encoded_text),))
+                encoded_text = np.concatenate((encoded_text, zeros_text))
 
                 img = read_img(img_path / f"{sample}.tif", self.img_height)
 
@@ -91,10 +89,10 @@ class IAMDataset(Dataset):
                         {
                             "sample": sample,
                             "strokes": strokes,
-                            "text": text,
+                            "text": encoded_text,
                             "image": img,
                             "style": style,
-                            "raw_text": raw_text,
+                            "raw_text": text,
                         },
                     )
 

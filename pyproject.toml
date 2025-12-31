@@ -21,6 +21,7 @@ dependencies = [
     "tqdm>=4.64.1",
     "mypy>=1.1.1",
     "ruff>=0.0.258",
+    "setuptools>=80.9.0",
 ]
 
 [build-system]

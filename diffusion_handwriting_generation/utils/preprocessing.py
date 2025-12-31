@@ -53,8 +53,8 @@ def remove_whitespace(
     row_mins = np.amin(img, axis=1)
     col_mins = np.amin(img, axis=0)
 
-    rows = np.where(row_mins < thresh)
-    cols = np.where(col_mins < thresh)
+    rows = np.nonzero(row_mins < thresh)
+    cols = np.nonzero(col_mins < thresh)
 
     if remove_middle:
         return img[rows[0]][:, cols[0]]

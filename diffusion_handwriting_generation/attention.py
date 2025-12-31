@@ -1,37 +1,24 @@
 import math
 
 import torch
-import torch.nn.functional as F
 
 
 class PosEmbeddings(torch.nn.Module):
+    """Sinusoidal positional embeddings."""
+
     def __init__(self, dim: int, pos_factor: float = 1.0):
         super().__init__()
         self.dim = dim
         self.pos_factor = pos_factor
 
     def forward(self, time: torch.Tensor) -> torch.Tensor:
-        # time: [batch_size] or [seq_len] (usually arange)
-        # We want to use the device of the input tensor
+        """Generate positional embeddings for given time steps."""
         device = time.device
         half_dim = self.dim // 2
-
         embeddings = math.log(10000) / (half_dim - 1)
-        # [half_dim]
         embeddings = torch.exp(torch.arange(half_dim, device=device) * -embeddings)
-
-        # time[:, None] -> [B, 1] or [L, 1]
-        # embeddings[None, :] -> [1, half_dim]
-        # result: [B/L, half_dim]
         embeddings = time[:, None] * embeddings[None, :] * self.pos_factor
-
-        # [B/L, dim]
         embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
-
-        # Match expected output format [1, B/L, dim] or [B, L, dim] ?
-        # The legacy code did: embeddings = embeddings[None, ...] -> [1, L, dim]
-        # In model.py it is used as: text_pe[:, : text.size(1)]
-        # So we probably want [1, L, dim] so it broadcasts over batch
         return embeddings[None, ...]
 
 
@@ -40,92 +27,60 @@ def scaled_dp_attn(
     k: torch.Tensor,
     v: torch.Tensor,
     mask: torch.Tensor | None = None,
-) -> tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, None]:
     """
-    Scaled Dot-Product Attention.
+    Scaled dot-product attention using PyTorch's optimized SDPA.
 
     Args:
-        q: [batch_size, num_heads, seq_len_q, depth]
-        k: [batch_size, num_heads, seq_len_k, depth]
-        v: [batch_size, num_heads, seq_len_k, depth]
-        mask: Optional mask. If provided, should be broadcastable to [batch_size, num_heads, seq_len_q, seq_len_k].
-              Legacy code used additive mask (-1e12 for masked values).
+        q: Query tensor [batch, heads, seq_len_q, depth]
+        k: Key tensor [batch, heads, seq_len_k, depth]
+        v: Value tensor [batch, heads, seq_len_k, depth]
+        mask: Optional additive mask (1 for positions to mask out)
+
+    Returns:
+        Tuple of (attention output, None)
     """
-    # Use PyTorch 2.0+ optimized attention if available and no special mask requirements
-    # Note: F.scaled_dot_product_attention expects:
-    #   query: (N, ..., L, E)
-    #   key:   (N, ..., S, E)
-    #   value: (N, ..., S, E)
-    #   attn_mask: (N, ..., L, S) - boolean or float additive mask
-
-    # Check if we can use optimized implementation
-    # Legacy mask was additive (-1e12). F.scaled_dot_product_attention handles that if is_causal=False
-
-    # We will stick to manual implementation to ensure exact behavior reproduction
-    # and compatibility with the specific mask format from legacy code,
-    # but cleaned up.
-
-    # (batch_size, num_heads, seq_len_q, seq_len_k)
-    qk = torch.matmul(q, k.transpose(-2, -1))
-    dk = k.size(-1)
-    scaled_qk = qk / math.sqrt(dk)
-
-    if mask is not None:
-        scaled_qk += mask * -1e12
-
-    # (batch_size, num_heads, seq_len_q, seq_len_k)
-    attention_weights = torch.softmax(scaled_qk, dim=-1)
-
-    # (batch_size, num_heads, seq_len_q, depth)
-    output = torch.matmul(attention_weights, v)
-
-    return output, attention_weights
+    attn_mask = mask * -1e9 if mask is not None else None
+    output = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=attn_mask)
+    return output, None
 
 
 class MultiHeadAttention(torch.nn.Module):
-    def __init__(self, C: int, num_heads: int):
+    """Multi-head attention mechanism."""
+
+    def __init__(self, d_model: int, num_heads: int):
         super().__init__()
-        self.C = C
+        self.d_model = d_model
         self.num_heads = num_heads
+        self.depth = d_model // num_heads
 
-        self.wq = torch.nn.Linear(C, C)
-        self.wk = torch.nn.Linear(C, C)
-        self.wv = torch.nn.Linear(C, C)
-        self.dense = torch.nn.Linear(C, C)
-
-    def split_heads(self, x: torch.Tensor, batch_size: int) -> torch.Tensor:
-        """
-        Args:
-            x: [batch_size, seq_len, C]
-        Returns:
-            [batch_size, num_heads, seq_len, C // num_heads]
-        """
-        x = x.view(batch_size, -1, self.num_heads, self.C // self.num_heads)
-        return x.permute(0, 2, 1, 3)
+        self.wq = torch.nn.Linear(d_model, d_model)
+        self.wk = torch.nn.Linear(d_model, d_model)
+        self.wv = torch.nn.Linear(d_model, d_model)
+        self.dense = torch.nn.Linear(d_model, d_model)
 
     def forward(self, q, k, v, mask=None):
+        """
+        Apply multi-head attention.
+
+        Args:
+            q: Query tensor [batch, seq_len, d_model]
+            k: Key tensor [batch, seq_len, d_model]
+            v: Value tensor [batch, seq_len, d_model]
+            mask: Optional attention mask
+
+        Returns:
+            Tuple of (output, None)
+        """
         batch_size = q.shape[0]
 
-        # Linear projections
-        q = self.wq(q)  # (bs, sl, C)
-        k = self.wk(k)  # (bs, sl, C)
-        v = self.wv(v)  # (bs, sl, C)
+        q = self.wq(q).view(batch_size, -1, self.num_heads, self.depth).transpose(1, 2)
+        k = self.wk(k).view(batch_size, -1, self.num_heads, self.depth).transpose(1, 2)
+        v = self.wv(v).view(batch_size, -1, self.num_heads, self.depth).transpose(1, 2)
 
-        # Split heads -> (bs, nh, sl, C // nh)
-        q = self.split_heads(q, batch_size)
-        k = self.split_heads(k, batch_size)
-        v = self.split_heads(v, batch_size)
+        attn_output, _ = scaled_dp_attn(q, k, v, mask)
 
-        # Attention
-        attention, attention_weights = scaled_dp_attn(q, k, v, mask)
+        attn_output = attn_output.transpose(1, 2).reshape(batch_size, -1, self.d_model)
+        output = self.dense(attn_output)
 
-        # Concatenate heads
-        # (bs, nh, sl, C // nh) -> (bs, sl, nh, C // nh)
-        attention = attention.permute(0, 2, 1, 3)
-        # -> (bs, sl, C)
-        concat_attention = attention.reshape(batch_size, -1, self.C)
-
-        # Output projection
-        output = self.dense(concat_attention)
-
-        return output, attention_weights
+        return output, None

@@ -72,6 +72,8 @@ class EncoderLayer(torch.nn.Module):
 
 
 class DiffusionModel(torch.nn.Module):
+    """Diffusion model for handwriting generation conditioned on text and style."""
+
     def __init__(
         self,
         num_layers: int = 4,
@@ -80,6 +82,14 @@ class DiffusionModel(torch.nn.Module):
         c3: int = 256,
         drop_rate: float = 0.1,
     ):
+        """
+        Args:
+            num_layers: Number of attention layers
+            c1: Base channel dimension
+            c2: Intermediate channel dimension
+            c3: Bottleneck channel dimension
+            drop_rate: Dropout probability
+        """
         super().__init__()
 
         # Input layer
@@ -153,11 +163,16 @@ class DiffusionModel(torch.nn.Module):
 
     def forward(self, strokes, text, sigma, style_vector):
         """
+        Forward pass of the diffusion model.
+
         Args:
-            strokes: [B, T, 2]
-            text: [B, L]
-            sigma: [B, 1]
-            style_vector: [B, 1, 1280]
+            strokes: Noisy stroke coordinates [B, T, 2]
+            text: Text token indices [B, L]
+            sigma: Diffusion timestep embeddings [B, 1]
+            style_vector: Style features from reference image [B, 1, 1280]
+
+        Returns:
+            Tuple of (predicted_noise, pen_lift_probs, None)
         """
         sigma = self.sigma_ffn(sigma)
         text_mask = create_padding_mask(text)
@@ -177,7 +192,7 @@ class DiffusionModel(torch.nn.Module):
 
         x = self.att_dense(x)
         for att_layer in self.att_layers:
-            x, att = att_layer(x, text, sigma, text_mask)
+            x, _ = att_layer(x, text, sigma, text_mask)
 
         x = self._upsample(x)
         x += self._conv(h3, self.skip_conv3)
@@ -193,4 +208,4 @@ class DiffusionModel(torch.nn.Module):
 
         output = self.output_dense(x)
         pen_lifts = self.pen_lifts_dense(x).squeeze(-1)
-        return output, pen_lifts, att
+        return output, pen_lifts, None

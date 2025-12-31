@@ -10,26 +10,28 @@ import torch
 
 
 def get_device() -> str:
+    """Returns the appropriate device string (cuda or cpu)."""
     if torch.cuda.is_available():
         return "cuda"
     return "cpu"
 
 
 def get_beta_set() -> torch.Tensor:
+    """Returns the predefined beta schedule for diffusion."""
     return 0.02 + explin(1e-5, 0.4, 60)
 
 
 def explin(min_val: float, max_val: float, l: int) -> torch.Tensor:
     """
-    Calculates the exponential values in a logarithmic space.
+    Calculates exponentially-spaced values in logarithmic space.
 
     Args:
-        min_val (float): minimum value of the exponential;
-        max_val (float): maximum value of the exponential;
-        L (int): number of values to calculate.
+        min_val: Minimum value
+        max_val: Maximum value
+        l: Number of values
 
     Returns:
-        torch.Tensor: tensor of exponential values.
+        Tensor of exponential values
     """
     log_min = math.log(min_val)
     log_max = math.log(max_val)
@@ -39,14 +41,14 @@ def explin(min_val: float, max_val: float, l: int) -> torch.Tensor:
 
 def get_alphas(batch_size: int, alpha_set: torch.Tensor) -> torch.Tensor:
     """
-    Returns random alpha values from the set of predefined alpha values.
+    Samples random alpha values from the alpha schedule.
 
     Args:
-        batch_size (int): number of alpha values to generate;
-        alpha_set (torch.Tensor): set of predefined alpha values.
+        batch_size: Number of alpha values to generate
+        alpha_set: Set of predefined alpha values
 
     Returns:
-        torch.Tensor: tensor of generated alpha values.
+        Tensor of sampled alpha values
     """
     alpha_indices = torch.randint(
         low=0,
@@ -67,24 +69,21 @@ def standard_diffusion_step(
     add_sigma: bool = True,
 ) -> torch.Tensor:
     """
-    Performs the standard diffusion step.
+    Performs standard DDPM diffusion sampling step.
 
     Args:
-        xt (torch.Tensor): input tensor;
-        eps (torch.Tensor): tensor of epsilon values;
-        beta (torch.Tensor): beta value;
-        alpha (torch.Tensor): alpha value;
-        add_sigma (bool, optional): whether to add random noise.
+        xt: Current noisy sample
+        eps: Predicted noise
+        beta: Beta value for current timestep
+        alpha: Alpha_bar value for current timestep
+        add_sigma: Whether to add stochastic noise
 
     Returns:
-        torch.Tensor: tensor after the standard diffusion step.
+        Denoised sample at t-1
     """
-    beta = beta.clone().detach()
-    alpha = alpha.clone().detach()
-
     x_t_minus1 = (1 / torch.sqrt(1 - beta)) * (xt - (beta * eps / torch.sqrt(1 - alpha)))
     if add_sigma:
-        x_t_minus1 += torch.sqrt(beta) * (torch.randn(xt.shape))
+        x_t_minus1 += torch.sqrt(beta) * torch.randn_like(xt)
     return x_t_minus1
 
 
@@ -96,20 +95,20 @@ def new_diffusion_step(
     alpha_next: torch.Tensor,
 ) -> torch.Tensor:
     """
-    Performs a single step of the new diffusion process, as described in the paper.
+    Performs alternative diffusion sampling step.
 
     Args:
-        xt (torch.Tensor): input tensor;
-        eps (torch.Tensor): tensor representing epsilon;
-        beta (torch.Tensor): tensor representing beta;
-        alpha (torch.Tensor): tensor representing alpha;
-        alpha_next (torch.Tensor): tensor representing alpha_next.
+        xt: Current noisy sample
+        eps: Predicted noise
+        beta: Beta value for current timestep
+        alpha: Alpha_bar value for current timestep
+        alpha_next: Alpha_bar value for next timestep
 
     Returns:
-        torch.Tensor: result of the diffusion step.
+        Denoised sample at t-1
     """
     x_t_minus1 = (xt - torch.sqrt(1 - alpha) * eps) / torch.sqrt(1 - beta)
-    x_t_minus1 += torch.randn(xt.shape) * math.sqrt(1 - alpha_next)
+    x_t_minus1 += torch.randn_like(xt) * torch.sqrt(1 - alpha_next)
     return x_t_minus1
 
 
@@ -149,27 +148,29 @@ def ff_network(
     hidden: int = 768,
     act_before: bool = True,
 ) -> torch.nn.Sequential:
-    """Builds a feedforward network in PyTorch.
+    """
+    Builds a feedforward network.
 
     Args:
-        inp (int): number of input units in the first layer of the network;
-        out (int): number of output units in the final layer of the network;
-        hidden (int): number of units in the hidden layer. Defaults to 768;
-        act_before (bool, optional): whether to apply the activation function
-                                     before the final layer. Defaults to True.
+        inp: Number of input features
+        out: Number of output features
+        hidden: Number of hidden units
+        act_before: Whether to apply activation before first layer
 
     Returns:
-        nn.Sequential: feedforward network.
+        Sequential feedforward network
     """
-    ff_layers = [
-        torch.nn.Linear(inp, hidden),
-        torch.nn.ReLU(),
-        torch.nn.Linear(hidden, out),
-    ]
+    layers = []
     if act_before:
-        ff_layers.insert(0, torch.nn.ReLU())
-        # pass
-    return torch.nn.Sequential(*ff_layers)
+        layers.append(torch.nn.ReLU())
+    layers.extend(
+        [
+            torch.nn.Linear(inp, hidden),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden, out),
+        ]
+    )
+    return torch.nn.Sequential(*layers)
 
 
 def create_padding_mask(seq: torch.Tensor, repeats: int = 1) -> torch.Tensor:

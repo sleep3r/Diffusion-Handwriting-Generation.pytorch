@@ -4,13 +4,7 @@ from diffusion_handwriting_generation.conditioning import AffineTransformLayer
 
 
 class ConvBlock(torch.nn.Module):
-    """
-    Args:
-        d_inp (int): number of input channels;
-        d_out (int): number of output channels;
-        dils (Tuple[int, int]): dilation rates for Conv1D layers;
-        drop_rate (float): dropout rate.
-    """
+    """Convolutional block with skip connection and affine conditioning."""
 
     def __init__(
         self,
@@ -19,6 +13,13 @@ class ConvBlock(torch.nn.Module):
         dils: tuple[int, int] = (1, 1),
         drop_rate: float = 0.0,
     ):
+        """
+        Args:
+            d_inp: Number of input channels
+            d_out: Number of output channels
+            dils: Dilation rates for Conv1D layers
+            drop_rate: Dropout rate
+        """
         super().__init__()
 
         # Activation function
