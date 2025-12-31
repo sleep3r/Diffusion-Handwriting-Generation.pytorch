@@ -13,18 +13,37 @@
 ## Data preparation:
 
 Download [IAM Handwriting Database](https://fki.tic.heia-fr.ch/databases/iam-handwriting-database) and extract it
-somewhere with the following structure:
+to the `data/` directory with the following structure:
 
 ```
-DATA_DIR/
-├── ascii
-├── lineImages
-└── lineStrokes
+data/
+├── ascii/
+│   ├── forms.txt
+│   ├── lines.txt
+│   └── sentences.txt
+├── lineImages/
+│   └── (png files organized by form)
+└── lineStrokes/
+    └── (xml files organized by form)
 ```
+
+After extracting the data, run the data preparation script to create individual form text files:
+
+```bash
+uv run python prepare_data.py
+```
+
+This will parse `lines.txt` and create structured text files in `data/ascii/` directory (e.g., `data/ascii/a01/a01-000u/a01-000u.txt`).
 
 ## Install:
 
+This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
+
 ```bash
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
 make install
 ```
 

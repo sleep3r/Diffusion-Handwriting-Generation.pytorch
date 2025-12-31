@@ -1,6 +1,6 @@
 import io
-from os import PathLike
 import pydoc
+from os import PathLike
 from typing import Any
 
 from addict import Dict

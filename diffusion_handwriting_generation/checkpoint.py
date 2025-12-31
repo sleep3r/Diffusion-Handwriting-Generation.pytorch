@@ -1,7 +1,7 @@
-from collections import OrderedDict
 import logging
-from os import PathLike
 import re
+from collections import OrderedDict
+from os import PathLike
 from typing import Any
 
 import torch
@@ -77,7 +77,7 @@ def load_state_dict(
         )
     if missing_keys:
         err_msg.append(
-            f'missing keys in source state_dict: {", ".join(missing_keys)}\n',
+            f"missing keys in source state_dict: {', '.join(missing_keys)}\n",
         )
 
     if len(err_msg) > 0:

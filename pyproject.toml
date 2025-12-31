@@ -1,32 +1,34 @@
-[tool.poetry]
+[project]
 name = "diffusion-handwriting-generation-pytorch"
 version = "0.1.0"
 description = "Diffusion Model for Online Handwriting Generation"
-authors = ["Aleksandr Kalashnikov <sleep3r@icloud.com>"]
+authors = [
+    {name = "Aleksandr Kalashnikov", email = "sleep3r@icloud.com"}
+]
 readme = "README.md"
-packages = [{include = "diffusion_handwriting_generation"}]
-
-
-[tool.poetry.dependencies]
-python = "^3.10"
-numpy = "^1.24.2"
-addict = "^2.4.0"
-fire = "^0.5.0"
-ruamel-yaml = "^0.17.21"
-torch = "^1.13.1"
-torchvision = "^0.14.1"
-matplotlib = "^3.6.3"
-opencv-python = "^4.7.0.68"
-gitpython = "^3.1.30"
-pytest = "^7.2.1"
-tqdm = "^4.64.1"
-mypy = "^1.1.1"
-ruff = "^0.0.258"
-
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24.2,<2.0",
+    "addict>=2.4.0",
+    "fire>=0.5.0",
+    "ruamel-yaml>=0.17.21",
+    "torch>=1.13.1,<2.3",
+    "torchvision>=0.14.1,<0.18",
+    "matplotlib>=3.6.3",
+    "opencv-python>=4.7.0.68",
+    "gitpython>=3.1.30",
+    "pytest>=7.2.1",
+    "tqdm>=4.64.1",
+    "mypy>=1.1.1",
+    "ruff>=0.0.258",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["diffusion_handwriting_generation"]
 
 
 [tool.isort]
@@ -38,13 +40,15 @@ sections=["FUTURE","STDLIB","THIRDPARTY","FIRSTPARTY","LOCALFOLDER"]
 
 
 [tool.ruff]
-ignore = ["E741"]
 line-length = 100
 
+[tool.ruff.lint]
+ignore = ["E741"]
 
-[tool.setuptools.metadata]
-description-file = "README.md"
 
+[tool.black]
+line-length = 100
 
 [tool.mypy]
 ignore_missing_imports = true
+disable_error_code = ["import-untyped"]

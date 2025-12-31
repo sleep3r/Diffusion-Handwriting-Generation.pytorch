@@ -37,8 +37,7 @@ class TrainingLoop:
         eps = torch.randn_like(x)
 
         x_perturbed = (
-            torch.sqrt(alphas).unsqueeze(-1) * x
-            + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
+            torch.sqrt(alphas).unsqueeze(-1) * x + torch.sqrt(1 - alphas).unsqueeze(-1) * eps
         )
 
         optimizer.zero_grad()
@@ -83,7 +82,7 @@ class TrainingLoop:
         alpha_set = torch.cumprod(1 - beta_set, dim=0)
 
         logger.info(
-            f'Starting train model, host: {meta["host_name"]}, exp_dir: {meta["exp_dir"]}\n',
+            f"Starting train model, host: {meta['host_name']}, exp_dir: {meta['exp_dir']}\n",
         )
         try:
             count = 0

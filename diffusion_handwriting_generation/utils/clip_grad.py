@@ -17,9 +17,7 @@ def adaptive_clip_grad(parameters, clip_factor=0.01, eps=1e-3, norm_type=2.0):
             continue
         p_data = p.detach()
         g_data = p.grad.detach()
-        max_norm = (
-            unitwise_norm(p_data, norm_type=norm_type).clamp_(min=eps).mul_(clip_factor)
-        )
+        max_norm = unitwise_norm(p_data, norm_type=norm_type).clamp_(min=eps).mul_(clip_factor)
         grad_norm = unitwise_norm(g_data, norm_type=norm_type)
         clipped_grad = g_data * (max_norm / grad_norm.clamp(min=1e-6))
         new_grads = torch.where(grad_norm < max_norm, g_data, clipped_grad)

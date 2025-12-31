@@ -3,18 +3,18 @@ PACKAGE_NAME ?= diffusion_handwriting_generation
 .PHONY: lint format test train install
 
 install:
-	pip install -e .
+	uv sync
 
 train:
-	PYTHONPATH="." python $(PACKAGE_NAME)/train.py --config=$(CONFIG)
+	PYTHONPATH="." uv run python $(PACKAGE_NAME)/train.py --config=$(CONFIG)
 
 test:
-	pytest -s tests
+	uv run pytest -s tests
 
 format:
-	@isort $(PACKAGE_NAME)
-	@black $(PACKAGE_NAME)
-
+	@uv run ruff check $(PACKAGE_NAME) --select I --fix
+	@uv run ruff format $(PACKAGE_NAME) prepare_data.py
+ 
 lint:
-	@mypy $(PACKAGE_NAME)
-	@ruff check $(PACKAGE_NAME) --fix
+	@uv run mypy $(PACKAGE_NAME)
+	@uv run ruff check $(PACKAGE_NAME) --fix

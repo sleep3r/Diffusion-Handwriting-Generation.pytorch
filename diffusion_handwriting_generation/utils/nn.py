@@ -3,6 +3,7 @@ notation clarification:
 we use the variable "alpha" for alpha_bar (cumprod 1-beta)
 the alpha in the paper is replaced with 1-beta
 """
+
 import math
 
 import torch
@@ -80,9 +81,7 @@ def standard_diffusion_step(
     beta = beta.clone().detach()
     alpha = alpha.clone().detach()
 
-    x_t_minus1 = (1 / torch.sqrt(1 - beta)) * (
-        xt - (beta * eps / torch.sqrt(1 - alpha))
-    )
+    x_t_minus1 = (1 / torch.sqrt(1 - beta)) * (xt - (beta * eps / torch.sqrt(1 - alpha)))
     if add_sigma:
         x_t_minus1 += torch.sqrt(beta) * (torch.randn(xt.shape))
     return x_t_minus1
