@@ -32,7 +32,7 @@ def infer(
         if not checkpoint_path:
             ckpt = exp_path / "model_final.pth"
             if not ckpt.exists():
-                ckpt = exp_path / "checkpoint_last.pth"
+                ckpt = exp_path / "model_last.pth"
             if not ckpt.exists():
                 checkpoints = list(exp_path.glob("checkpoint_*.pth"))
                 # Filter out checkpoints that don't have integer steps (e.g. checkpoint_last.pth if it wasn't caught above)
@@ -57,17 +57,17 @@ def infer(
             "either directly or via experiment_path."
         )
 
-    model, _ = load_model(
+    model, device = load_model(
         config_path=config_path,
         checkpoint_path=checkpoint_path,
     )
 
     tokenizer = Tokenizer()
-    beta_set = get_beta_set()
+    beta_set = get_beta_set().to(device)
     style_extractor = StyleExtractor()
 
     writer_img = read_img(source, 96)[None, None, :]
-    style_vector = style_extractor(writer_img)[None, ...]
+    style_vector = style_extractor(writer_img)[None, ...].to(device)
 
     time_steps = len(prompt) * 16
     time_steps = time_steps - (time_steps % 8) + 8
@@ -76,16 +76,16 @@ def infer(
     # Checking tokenizer.py: tokenized.append(1) is present.
     # So we should just use tokenizer.encode(prompt).
     encoded_text = tokenizer.encode(prompt)
-    text = torch.tensor([encoded_text])
+    text = torch.tensor([encoded_text], device=device)
 
     bs = text.shape[0]
-    alpha_set = torch.cumprod(1 - beta_set, dim=0)
-    x = torch.randn((bs, time_steps, 2))
+    alpha_set = torch.cumprod(1 - beta_set, dim=0).to(device)
+    x = torch.randn((bs, time_steps, 2), device=device)
 
     for i in tqdm(range(len(beta_set) - 1, -1, -1)):
-        alpha = alpha_set[i] * torch.ones((bs, 1, 1))
-        beta = beta_set[i] * torch.ones((bs, 1, 1))
-        a_next = alpha_set[i - 1] if i > 0 else torch.tensor(1.0)
+        alpha = alpha_set[i] * torch.ones((bs, 1, 1), device=device)
+        beta = beta_set[i] * torch.ones((bs, 1, 1), device=device)
+        a_next = alpha_set[i - 1] if i > 0 else torch.tensor(1.0, device=device)
 
         model_out, pen_lifts, _ = model(x, text, torch.sqrt(alpha), style_vector)
 

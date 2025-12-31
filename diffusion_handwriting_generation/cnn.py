@@ -61,16 +61,22 @@ class ConvBlock(torch.nn.Module):
         return conv(x.transpose(2, 1)).transpose(2, 1)
 
     def forward(self, x: torch.Tensor, alpha: torch.Tensor):
-        x_skip = self._conv(x, self.conv_skip)
+        # Convert to channel-first once for convolutions to reduce transpose overhead
+        x_ch = x.transpose(1, 2)  # [B, C, T]
 
-        x = self._conv(self.act(x), self.conv1)
-        x = self.drop(self.affine1(x, alpha))
+        x_skip_ch = self.conv_skip(x_ch)
 
-        x = self._conv(self.act(x), self.conv2)
-        x = self.drop(self.affine2(x, alpha))
+        x1_ch = self.conv1(self.act(x_ch))
+        x1 = x1_ch.transpose(1, 2)  # back to [B, T, C] for affine
+        x1 = self.drop(self.affine1(x1, alpha))
 
-        x = self.fc(self.act(x))
-        x = self.drop(self.affine3(x, alpha))
+        x2_ch = self.conv2(self.act(x1.transpose(1, 2)))
+        x2 = x2_ch.transpose(1, 2)
+        x2 = self.drop(self.affine2(x2, alpha))
 
-        x += x_skip
-        return x
+        x3 = self.fc(self.act(x2))
+        x3 = self.drop(self.affine3(x3, alpha))
+
+        # Bring skip connection back to channel-last and add
+        x_out = x3 + x_skip_ch.transpose(1, 2)
+        return x_out
