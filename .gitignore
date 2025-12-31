@@ -141,3 +141,4 @@ data/lineStrokes/
 .DS_Store
 
 Diffusion-Handwriting-Generation/
+data/best_exp/
