@@ -16,4 +16,4 @@ def loss_fn(
         nn.BCELoss(reduction="none")(pen_lifts, pen_lifts_pred).mean(dim=1)
         * torch.squeeze(alphas, -1),
     )
-    return score_loss + pen_lifts_loss
+    return score_loss + pen_lifts_loss, score_loss, pen_lifts_loss

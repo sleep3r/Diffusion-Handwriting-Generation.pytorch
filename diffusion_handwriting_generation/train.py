@@ -29,6 +29,8 @@ class TrainingLoop:
         model: DiffusionModel,
         alpha_set: torch.Tensor,
         train_loss: list,
+        score_loss_list: list,
+        pen_lifts_loss_list: list,
         optimizer: InvSqrtScheduledOptim,
     ):
         x, pen_lifts, text, style_vectors = self.process_batch(batch)
@@ -47,7 +49,9 @@ class TrainingLoop:
             torch.sqrt(alphas),
             style_vectors,
         )
-        loss = loss_fn(eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas)
+        loss, score_loss, pen_lifts_loss = loss_fn(
+            eps, strokes_pred, pen_lifts, pen_lifts_pred, alphas
+        )
         loss.backward()
 
         if self.cfg.training_args.clip_grad is not None:
@@ -59,6 +63,8 @@ class TrainingLoop:
         optimizer.step_and_update_lr()
 
         train_loss.append(loss.item())
+        score_loss_list.append(score_loss.item())
+        pen_lifts_loss_list.append(pen_lifts_loss.item())
 
     def process_batch(self, batch):
         strokes, text, style_vectors = (
@@ -78,6 +84,8 @@ class TrainingLoop:
         model, optimizer, train_loader = self.prepare_training()
         s = time.time()
         train_loss: list[float] = []
+        score_loss_list: list[float] = []
+        pen_lifts_loss_list: list[float] = []
         beta_set = get_beta_set()
         alpha_set = torch.cumprod(1 - beta_set, dim=0)
 
@@ -90,15 +98,27 @@ class TrainingLoop:
                 batch = next(iter(train_loader))
                 count += 1
 
-                self.train_step(batch, model, alpha_set, train_loss, optimizer)
+                self.train_step(
+                    batch,
+                    model,
+                    alpha_set,
+                    train_loss,
+                    score_loss_list,
+                    pen_lifts_loss_list,
+                    optimizer,
+                )
 
                 if (count + 1) % self.cfg.training_args.log_freq == 0:
                     logger.info(
                         f"Step {count + 1} | "
                         f"Loss: {sum(train_loss) / len(train_loss):.3f} | "
+                        f"Score: {sum(score_loss_list) / len(score_loss_list):.3f} | "
+                        f"Pen: {sum(pen_lifts_loss_list) / len(pen_lifts_loss_list):.3f} | "
                         f"Time: {time.time() - s:.3f} sec",
                     )
                     train_loss = []
+                    score_loss_list = []
+                    pen_lifts_loss_list = []
 
                 if (count + 1) % self.cfg.training_args.save_freq == 0:
                     checkpoint_path = meta["exp_dir"] / f"checkpoint_{count + 1}.pth"
