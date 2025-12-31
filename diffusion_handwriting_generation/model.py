@@ -7,7 +7,7 @@ from diffusion_handwriting_generation.text_style import TextStyleEncoder
 from diffusion_handwriting_generation.utils.nn import create_padding_mask, ff_network
 
 
-class EncoderLayer(torch.torch.nn.Module):
+class EncoderLayer(torch.nn.Module):
     def __init__(
         self,
         d_inp: int,
@@ -18,14 +18,12 @@ class EncoderLayer(torch.torch.nn.Module):
     ):
         super().__init__()
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         # Activation function
         self.act = torch.nn.SiLU()
 
-        # Positional embeddings
-        self.text_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(torch.arange(2000))
-        self.stroke_pe = PosEmbeddings(d_out, pos_factor=pos_factor)(torch.arange(2000))
+        # Positional embeddings generators
+        self.text_pe_gen = PosEmbeddings(d_out, pos_factor=pos_factor)
+        self.stroke_pe_gen = PosEmbeddings(d_out, pos_factor=pos_factor)
 
         # Dropout layer
         self.drop = torch.nn.Dropout(drop_rate)
@@ -50,14 +48,19 @@ class EncoderLayer(torch.torch.nn.Module):
     def forward(self, x, text, sigma, text_mask):
         text = self.text_dense(self.act(text))
         text = self.affine0(self.lnorm(text), sigma)
-        text_pe = text + self.text_pe[:, : text.size(1)]
 
-        x_pe = x + self.stroke_pe[:, : x.size(1)]
+        # Generate PE on the fly
+        text_pe = self.text_pe_gen(torch.arange(text.size(1), device=text.device))
+        text_pe = text + text_pe
+
+        x_pe = self.stroke_pe_gen(torch.arange(x.size(1), device=x.device))
+        x_pe = x + x_pe
+
         x2, att = self.mha(x_pe, text_pe, text, text_mask)
         x2 = self.lnorm(self.drop(x2))
         x2 = self.affine1(x2, sigma) + x
 
-        x2_pe = x2 + self.stroke_pe[:, : x2.size(1)]
+        x2_pe = x2 + self.stroke_pe_gen(torch.arange(x2.size(1), device=x2.device))
         x3, _ = self.mha2(x2_pe, x2_pe, x2)
         x3 = self.lnorm(x2 + self.drop(x3))
         x3 = self.affine2(x3, sigma)
@@ -78,8 +81,6 @@ class DiffusionModel(torch.nn.Module):
         drop_rate: float = 0.1,
     ):
         super().__init__()
-
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Input layer
         self.input_dense = torch.nn.Linear(2, c1)

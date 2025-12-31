@@ -1,9 +1,24 @@
 PACKAGE_NAME ?= diffusion_handwriting_generation
+TEXT ?= "Hello World"
+SOURCE ?= "Diffusion-Handwriting-Generation/assets/a02-050-03.tif"
+EXP ?= ""
+CONFIG ?= ""
+CHECKPOINT ?= ""
+OUTPUT ?= "prediction"
 
-.PHONY: lint format test train install sync
+.PHONY: lint format test train install sync infer
 
 install:
 	uv sync
+
+infer:
+	PYTHONPATH="." uv run python $(PACKAGE_NAME)/inference.py \
+		--prompt="$(TEXT)" \
+		--source="$(SOURCE)" \
+		--experiment_path="$(EXP)" \
+		--config_path="$(CONFIG)" \
+		--checkpoint_path="$(CHECKPOINT)" \
+		--output="$(OUTPUT)"
 
 train:
 	PYTHONPATH="." uv run python $(PACKAGE_NAME)/train.py --config=$(CONFIG)

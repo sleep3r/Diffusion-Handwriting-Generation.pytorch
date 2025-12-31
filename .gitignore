@@ -134,3 +134,10 @@ data/runs/
 data/ascii/
 data/lineImages/
 data/lineStrokes/
+
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.DS_Store
+
+Diffusion-Handwriting-Generation/

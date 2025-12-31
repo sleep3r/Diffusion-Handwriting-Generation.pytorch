@@ -63,10 +63,10 @@ class ConvBlock(torch.nn.Module):
     def forward(self, x: torch.Tensor, alpha: torch.Tensor):
         x_skip = self._conv(x, self.conv_skip)
 
-        x = self._conv(x, self.conv1)
+        x = self._conv(self.act(x), self.conv1)
         x = self.drop(self.affine1(x, alpha))
 
-        x = self._conv(x, self.conv2)
+        x = self._conv(self.act(x), self.conv2)
         x = self.drop(self.affine2(x, alpha))
 
         x = self.fc(self.act(x))
