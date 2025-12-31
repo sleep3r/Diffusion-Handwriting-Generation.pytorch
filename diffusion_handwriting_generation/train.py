@@ -15,16 +15,13 @@ from diffusion_handwriting_generation.model import DiffusionModel
 from diffusion_handwriting_generation.scheduler import InvSqrtScheduledOptim
 from diffusion_handwriting_generation.utils.clip_grad import dispatch_clip_grad
 from diffusion_handwriting_generation.utils.experiment import log_artifacts, prepare_exp
-from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set
+from diffusion_handwriting_generation.utils.nn import get_alphas, get_beta_set, get_device
 
 
 class TrainingLoop:
     def __init__(self, cfg: DLConfig):
         self.cfg = cfg
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
+        self.device = get_device()
 
     def train_step(
         self,

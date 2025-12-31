@@ -10,8 +10,9 @@ import torch
 
 
 def get_device() -> str:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    return device
+    if torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
 
 
 def get_beta_set() -> torch.Tensor:

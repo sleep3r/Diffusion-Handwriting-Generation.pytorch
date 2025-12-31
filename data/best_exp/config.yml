@@ -1,0 +1,40 @@
+experiment:
+  name: diffusion_handwriting_generation
+  work_dir: 
+    /Users/alexander/Desktop/stuff/Diffusion-Handwriting-Generation.pytorch/data/runs
+  data_dir: 
+    /Users/alexander/Desktop/stuff/Diffusion-Handwriting-Generation.pytorch/data
+  splits_file: ./data/splits.json
+
+  seed: 54321
+  precision: 10
+  deterministic: false
+
+dataset_args:
+  max_seq_len: 480 # % 8 == 0
+  max_text_len: 50
+  img_height: 90
+  img_width: 1400
+
+training_args:
+  steps: 60000
+  batch_size: 4
+  num_workers: 0
+  max_files: 4
+
+  warmup_steps: 10000
+  clip_grad: 100.0
+  dropout: 0.0
+  att_layers_num: 2
+  channels: 128
+
+  log_freq: 5
+  save_freq: 5000
+
+
+optimizer:
+  type: torch.optim.Adam
+  params:
+    lr: 0.0003
+    weight_decay: 0.00001
+    betas: [0.9, 0.98]

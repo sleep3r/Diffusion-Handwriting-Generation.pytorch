@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import fire
@@ -73,7 +72,11 @@ def infer(
     time_steps = len(prompt) * 16
     time_steps = time_steps - (time_steps % 8) + 8
 
-    text = torch.tensor([tokenizer.encode(prompt) + [1]])
+    # Tokenizer.encode already appends 1 (EOS), so we don't need to append it again unless it doesn't.
+    # Checking tokenizer.py: tokenized.append(1) is present.
+    # So we should just use tokenizer.encode(prompt).
+    encoded_text = tokenizer.encode(prompt)
+    text = torch.tensor([encoded_text])
 
     bs = text.shape[0]
     alpha_set = torch.cumprod(1 - beta_set, dim=0)

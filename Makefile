@@ -1,7 +1,7 @@
 PACKAGE_NAME ?= diffusion_handwriting_generation
 TEXT ?= "Hello World"
-SOURCE ?= "Diffusion-Handwriting-Generation/assets/a02-050-03.tif"
-EXP ?= ""
+SOURCE ?= "data/lineImages/a01/a01-000/a01-000u-01.tif"
+EXP ?= "data/best_exp"
 CONFIG ?= ""
 CHECKPOINT ?= ""
 OUTPUT ?= "prediction"
