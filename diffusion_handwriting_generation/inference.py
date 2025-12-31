@@ -33,10 +33,22 @@ def infer(
         if not checkpoint_path:
             ckpt = exp_path / "model_final.pth"
             if not ckpt.exists():
+                ckpt = exp_path / "checkpoint_last.pth"
+            if not ckpt.exists():
                 checkpoints = list(exp_path.glob("checkpoint_*.pth"))
-                if checkpoints:
-                    checkpoints.sort(key=lambda p: int(p.stem.split("_")[1]))
-                    ckpt = checkpoints[-1]
+                # Filter out checkpoints that don't have integer steps (e.g. checkpoint_last.pth if it wasn't caught above)
+                numbered_checkpoints = []
+                for p in checkpoints:
+                    try:
+                        step = int(p.stem.split("_")[1])
+                        numbered_checkpoints.append((step, p))
+                    except ValueError:
+                        continue
+
+                if numbered_checkpoints:
+                    numbered_checkpoints.sort(key=lambda x: x[0])
+                    ckpt = numbered_checkpoints[-1][1]
+
             if ckpt and ckpt.exists():
                 checkpoint_path = str(ckpt)
 
@@ -70,7 +82,7 @@ def infer(
     for i in tqdm(range(len(beta_set) - 1, -1, -1)):
         alpha = alpha_set[i] * torch.ones((bs, 1, 1))
         beta = beta_set[i] * torch.ones((bs, 1, 1))
-        a_next = alpha_set[i - 1] if i > 0 else torch.Tensor(1.0)
+        a_next = alpha_set[i - 1] if i > 0 else torch.tensor(1.0)
 
         model_out, pen_lifts, _ = model(x, text, torch.sqrt(alpha), style_vector)
 
