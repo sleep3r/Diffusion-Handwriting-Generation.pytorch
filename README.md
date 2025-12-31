@@ -14,11 +14,13 @@
 
 ### 1. Download IAM Handwriting Database
 
+This project trains on the **IAM Online Handwriting Database** (i.e. pen trajectory / stroke data, not only offline images).
+
 You need to download the following files from [IAM Handwriting Database](https://fki.tic.heia-fr.ch/databases/iam-handwriting-database) (registration required):
 
-- **ascii.tgz** - Contains forms.txt, lines.txt, sentences.txt
-- **lineImages.tgz** - Line images as PNG files  
-- **lineStrokes-all.tar.gz** - Individual XML files with stroke data for each line ⚠️ **Important:** Download `lineStrokes-all.tar.gz`, NOT `forms.tgz`
+- **ascii-all** (e.g. `ascii-all.tar` / `ascii-all.tgz`) - Per-form transcription files (the dataset code reads `.../ascii/<id[:3]>/<id[:7]>/<id>.txt`)
+- **lineImages-all** - Line images (TIFF/PNG depending on the archive you download)
+- **lineStrokes-all** - Individual XML files with stroke data for each line (contains `<StrokeSet>` with `<Point ...>`). ⚠️ Make sure you download **line-level strokes**, not form-level metadata.
 
 ### 2. Extract files
 
@@ -27,32 +29,23 @@ Extract the downloaded archives to the `data/` directory with the following stru
 ```bash
 data/
 ├── ascii/
-│   ├── forms.txt
-│   ├── lines.txt
-│   └── sentences.txt
+│   └── a01/a01-000/
+│       ├── a01-000u.txt
+│       ├── a01-000x.txt
+│       └── ...
 ├── lineImages/
-│   └── a01/a01-000u/
-│       ├── a01-000u-00.png
-│       ├── a01-000u-01.png
+│   └── a01/a01-000/
+│       ├── a01-000u-01.tif
+│       ├── a01-000u-02.tif
 │       └── ...
 └── lineStrokes/
-    └── a01/a01-000u/
-        ├── a01-000u-00.xml  (with StrokeSet data)
-        ├── a01-000u-01.xml
+    └── a01/a01-000/
+        ├── a01-000u-01.xml  (with StrokeSet data)
+        ├── a01-000u-02.xml
         └── ...
 ```
 
 **Important:** `lineStrokes/` must contain individual XML files for each line (e.g., `a01-000u-00.xml`) with `<StrokeSet>` elements containing stroke points, NOT form-level metadata XML files.
-
-### 3. Prepare text files
-
-After extracting the data, run the data preparation script to create individual form text files:
-
-```bash
-make prepare_data
-```
-
-This will parse `lines.txt` and create structured text files in `data/ascii/` directory (e.g., `data/ascii/a01/a01-000u/a01-000u.txt`).
 
 ## Install
 
