@@ -76,6 +76,32 @@ Then, run:
 make train CONFIG=<cfg>.yml
 ```
 
+## Inference
+
+To generate handwriting from text using a trained model:
+
+```bash
+make infer TEXT="Follow the White Rabbit" \
+           EXP="./data/best_exp" \
+           OUTPUT="prediction"
+```
+
+This will look for the configuration and weights in the specified experiment directory.
+
+### Pretrained Model
+
+We provide a pretrained model that achieves good results. The artifacts are located in `data/best_exp/`:
+- `config.yml`: Best training configuration
+- `model_final.pth`: Trained model weights
+- `run.log`: Training log
+- `report.json`: Final metrics
+
+**Example Output:**
+
+Prompt: *"Follow the White Rabbit"*
+
+![Follow the White Rabbit](prediction.png)
+
 ## References
 
 |Papers|

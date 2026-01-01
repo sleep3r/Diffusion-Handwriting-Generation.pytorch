@@ -1,8 +1,8 @@
 {
-    "run_name": "diffusion_handwriting_generation/31.12/12.58.59",
-    "exp_dir": "/Users/alexander/Desktop/stuff/Diffusion-Handwriting-Generation.pytorch/data/runs/diffusion_handwriting_generation/31.12/12.58.59",
-    "sha": "1f16713fa10dd55e7d2a7f9fe224e184a3ddf27f",
-    "host_name": "alexander@MacBook-Pro--sleep3r-3.local",
+    "run_name": "diffusion_handwriting_generation/01.01/16.19.47",
+    "exp_dir": "data/runs/diffusion_handwriting_generation/01.01/16.19.47",
+    "sha": "c653bbeea9987d057974ec3305ecd7b20eecbb9f",
+    "host_name": "jupyter-kalashnikov.a85@wb-ebc2e@moderation-gpu-01.el.wb.ru",
     "seed": 54321,
     "exp_name": "diffusion_handwriting_generation"
 }
