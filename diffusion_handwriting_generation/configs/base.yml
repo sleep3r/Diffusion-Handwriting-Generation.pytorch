@@ -11,7 +11,7 @@ experiment:
 dataset_args:
   max_seq_len: 480 # % 8 == 0
   max_text_len: 50
-  img_height: 90
+  img_height: 96
   img_width: 1400
 
 training_args:

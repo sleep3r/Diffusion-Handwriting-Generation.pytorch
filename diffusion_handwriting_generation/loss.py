@@ -12,6 +12,10 @@ def loss_fn(
     """
     Combined loss function for diffusion handwriting generation.
 
+    Matches TensorFlow implementation:
+    - score_loss: mean(sum((eps-score)^2, axis=-1))
+    - pen_lifts_loss: mean(bce * abar)
+
     Args:
         eps: Ground truth noise
         score_pred: Predicted noise (score)
@@ -22,7 +26,7 @@ def loss_fn(
     Returns:
         Tuple of (total_loss, score_loss, pen_lifts_loss)
     """
-    score_loss = F.mse_loss(score_pred, eps, reduction="mean")
+    score_loss = ((eps - score_pred) ** 2).sum(dim=-1).mean()
 
     pen_lifts = torch.clamp(pen_lifts, min=1e-7, max=1 - 1e-7)
     pen_lifts_loss = (

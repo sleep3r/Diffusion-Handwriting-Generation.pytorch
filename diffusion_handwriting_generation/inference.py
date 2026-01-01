@@ -23,7 +23,7 @@ def infer(
     checkpoint_path: str = None,
     experiment_path: str = None,
     output: str = "result",
-    diffusion_mode: str = "standard",
+    diffusion_mode: str = "new",
 ):
     if experiment_path:
         exp_path = Path(experiment_path)
@@ -67,25 +67,24 @@ def infer(
     style_extractor = StyleExtractor()
 
     writer_img = read_img(source, 96)[None, None, :]
-    style_vector = style_extractor(writer_img)[None, ...].to(device)
+    style_vector = style_extractor(writer_img).to(device)
 
-    time_steps = len(prompt) * 16
-    time_steps = time_steps - (time_steps % 8) + 8
-
-    # Tokenizer.encode already appends 1 (EOS), so we don't need to append it again unless it doesn't.
-    # Checking tokenizer.py: tokenized.append(1) is present.
-    # So we should just use tokenizer.encode(prompt).
     encoded_text = tokenizer.encode(prompt)
     text = torch.tensor([encoded_text], device=device)
 
+    # Paper heuristic: 16 * len(text)
+    # This ensures density of points matches training distribution
+    time_steps = len(encoded_text) * 16
+    time_steps = time_steps - (time_steps % 8) + 8
+
     bs = text.shape[0]
-    alpha_set = torch.cumprod(1 - beta_set, dim=0).to(device)
+    alpha_set = torch.cumprod(1 - beta_set, dim=0)
     x = torch.randn((bs, time_steps, 2), device=device)
 
     for i in tqdm(range(len(beta_set) - 1, -1, -1)):
         alpha = alpha_set[i] * torch.ones((bs, 1, 1), device=device)
         beta = beta_set[i] * torch.ones((bs, 1, 1), device=device)
-        a_next = alpha_set[i - 1] if i > 0 else torch.tensor(1.0, device=device)
+        a_next = alpha_set[i - 1] if i > 1 else torch.tensor(1.0, device=device)
 
         model_out, pen_lifts, _ = model(x, text, torch.sqrt(alpha), style_vector)
 

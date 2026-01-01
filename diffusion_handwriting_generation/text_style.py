@@ -20,25 +20,43 @@ class StyleExtractor(nn.Module):
             weights=models.MobileNet_V2_Weights.DEFAULT,
             progress=True,
         ).to(self.device)
-        self.local_pool = nn.AvgPool2d(kernel_size=(3, 3), stride=1)
-        self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        # Use adaptive pooling to ensure consistent [B, 14, 1280] output
+        self.local_pool = nn.AvgPool2d(kernel_size=3, stride=3)
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((1, 14))
 
         self.freeze_all_layers()
+
+        # CRITICAL: Force MobileNet to eval mode to use pretrained BN stats
+        self.mobilenet.eval()
+        self.eval()
+
+    def train(self, mode: bool = True):
+        """Override train to keep MobileNet in eval mode."""
+        super().train(mode)
+        self.mobilenet.eval()
+        return self
 
     def freeze_all_layers(self):
         for param in self.mobilenet.parameters():
             param.requires_grad = False
 
     def forward(self, img_batch: np.ndarray) -> torch.Tensor:
-        """Extract style features from grayscale images."""
-        x = torch.tensor(img_batch, dtype=torch.float32).to(self.device)
-        x = (x / 127.5) - 1
-        x = x.repeat(1, 3, 1, 1)
+        """Extract style features from grayscale images.
 
-        x = self.mobilenet.features(x)
-        x = self.local_pool(x)
-        x = self.global_avg_pool(x)
-        return x.view(x.size(0), -1)
+        Uses stride=3 pooling like TF, then adaptive pooling to ensure
+        consistent [B, 14, 1280] output regardless of input image width.
+        """
+        with torch.no_grad():
+            x = torch.tensor(img_batch, dtype=torch.float32).to(self.device)
+            x = (x / 127.5) - 1
+            x = x.repeat(1, 3, 1, 1)
+
+            x = self.mobilenet.features(x)  # [B, 1280, H', W']
+            x = self.local_pool(x)  # [B, 1280, H'//3, W'//3]
+            x = self.adaptive_pool(x)  # [B, 1280, 1, 14] - force width=14
+            x = x.squeeze(2)  # [B, 1280, 14]
+            x = x.permute(0, 2, 1)  # [B, 14, 1280]
+            return x
 
 
 class TextStyleEncoder(nn.Module):
@@ -58,7 +76,8 @@ class TextStyleEncoder(nn.Module):
 
         # Attention layer and normalization
         self.mha = MultiHeadAttention(d_model, 8)
-        self.layernorm = nn.LayerNorm(d_model, eps=1e-6)
+
+        self.layernorm = nn.LayerNorm(d_model, eps=1e-6, elementwise_affine=False)
 
         # Dropout
         self.dropout = nn.Dropout(0.3)

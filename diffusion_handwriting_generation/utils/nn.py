@@ -124,7 +124,7 @@ def reshape_up(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
         torch.Tensor: reshaped tensor.
     """
     x_shape = x.shape
-    return x.view(x_shape[0], x_shape[1] * factor, x_shape[2] // factor)
+    return x.reshape(x_shape[0], x_shape[1] * factor, x_shape[2] // factor)
 
 
 def reshape_down(x: torch.Tensor, factor: int = 2) -> torch.Tensor:
@@ -151,6 +151,8 @@ def ff_network(
     """
     Builds a feedforward network.
 
+    Uses SiLU/Swish activation to match TensorFlow implementation.
+
     Args:
         inp: Number of input features
         out: Number of output features
@@ -162,11 +164,11 @@ def ff_network(
     """
     layers = []
     if act_before:
-        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.SiLU())
     layers.extend(
         [
             torch.nn.Linear(inp, hidden),
-            torch.nn.ReLU(),
+            torch.nn.SiLU(),
             torch.nn.Linear(hidden, out),
         ]
     )

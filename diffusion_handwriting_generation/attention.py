@@ -8,6 +8,7 @@ class PosEmbeddings(torch.nn.Module):
 
     def __init__(self, dim: int, pos_factor: float = 1.0):
         super().__init__()
+
         self.dim = dim
         self.pos_factor = pos_factor
 

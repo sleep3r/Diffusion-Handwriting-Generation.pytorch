@@ -11,13 +11,16 @@ from diffusion_handwriting_generation.utils.preprocessing import remove_whitespa
 def parse_strokes_xml(xml_path: PathLike | str) -> np.ndarray:
     """Parses an XML strokes file from the IAM Handwriting Database and returns a list of strokes.
 
+    Matches TensorFlow implementation semantics:
+    - Pen-lift channel is ROLLED by 1 position (so a stroke segment has pen_lift=1 if it should NOT be drawn)
+    - No sorting by timestamp (preserves file order)
+    - is_end is marked at the last point of each stroke, then rolled
+
     Args:
         xml_path (str): Path to the XML strokes file.
 
     Returns:
-        np.ndarray: each stroke is represented as a Numpy array with shape (num_points, 3),
-        where num_points is the number of points in the stroke and the last dimension represents
-        (x, y, end), where x and y are the coordinates of the point and end is a boolean value
+        np.ndarray: shape (num_points, 3), where last dimension is (dx, dy, pen_lift)
     """
     # Parse the XML file using ElementTree
     tree = ET.parse(xml_path)
@@ -28,45 +31,38 @@ def parse_strokes_xml(xml_path: PathLike | str) -> np.ndarray:
     if stroke_set is None:
         raise ValueError("No StrokeSet element found in XML file")
 
-    # Extract the strokes from the StrokeSet element
-    stroke_x: list = []
-    stroke_y: list = []
-    stroke_time: list = []
-    stroke_end: list = []
-
+    # Extract the strokes from the StrokeSet element - match TF semantics
+    strokes = []
     prev = None
+
     for stroke_elem in stroke_set.findall("Stroke"):
-        for point in stroke_elem.findall("Point"):
+        points = stroke_elem.findall("Point")
+        for idx, point in enumerate(points):
             x = int(point.attrib["x"])
             y = int(point.attrib["y"])
-            time = float(point.attrib["time"])
-            is_end = False
+            # Mark as end if this is the last point in the stroke
+            is_end = 1.0 if idx == len(points) - 1 else 0.0
 
             if prev is None:
                 prev = [x, -y]
             else:
-                stroke_x.append(x - prev[0])
-                stroke_y.append(-y - prev[1])
-                stroke_time.append(time)
-                stroke_end.append(is_end)
+                strokes.append([x - prev[0], -y - prev[1], is_end])
                 prev = [x, -y]
 
-        # Append a 1 to the end of the stroke to indicate that the stroke has ended
-        if stroke_end:
-            stroke_end[-1] = True
-        else:
-            stroke_end = [True]
-            stroke_x = [prev[0]]  # type: ignore
-            stroke_y = [prev[1]]  # type: ignore
-            stroke_time = [0]
+    strokes = np.array(strokes, dtype=float)
 
-    strokes = np.array([stroke_x, stroke_y, stroke_end, stroke_time], dtype=float).T
-
-    # Sort the strokes by timestamp, keep only the x, y, and end values
-    strokes = strokes[np.argsort(strokes[:, 3])][:, :3]
+    # CRITICAL: Roll pen-lift channel by 1 (TF semantics)
+    # "the pen pickups are shifted by one, so a stroke that is not drawn has a 1"
+    strokes[:, 2] = np.roll(strokes[:, 2], 1)
 
     # Normalize the strokes
     strokes[:, :2] /= np.std(strokes[:, :2])
+
+    # Apply stroke simplification (combine_strokes) 3 times, matching TF
+    # This reduces micro-jitter and helps learning
+    for _ in range(3):
+        strokes = combine_strokes(strokes, int(len(strokes) * 0.2))
+
     return strokes
 
 

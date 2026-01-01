@@ -16,12 +16,12 @@ dataset_args:
 
 training_args:
   steps: 60000
-  batch_size: 16
+  batch_size: 96 # Match paper batch size directly
   num_workers: 0
   max_files: null
 
-  warmup_steps: 5000
-  clip_grad: 1.0
+  warmup_steps: 10000
+  clip_grad: 100.0
   dropout: 0.0
   att_layers_num: 2
   channels: 128

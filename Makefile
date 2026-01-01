@@ -1,6 +1,6 @@
 PACKAGE_NAME ?= diffusion_handwriting_generation
 TEXT ?= "Hello World and goodbye"
-SOURCE ?= "data/lineImages/a01/a01-000/a01-000u-01.tif"
+SOURCE ?= "data/lineImages/r07/r07-475/r07-475z-01.tif"
 EXP ?= "data/best_exp"
 CONFIG ?= ""
 CHECKPOINT ?= ""

@@ -37,11 +37,12 @@ class ConvBlock(torch.nn.Module):
             dilation=dils[0],
             padding="same",
         )
+
         self.conv2 = torch.nn.Conv1d(
             d_out // 2,
             d_out,
             kernel_size=3,
-            dilation=dils[1],
+            dilation=dils[0],
             padding="same",
         )
 

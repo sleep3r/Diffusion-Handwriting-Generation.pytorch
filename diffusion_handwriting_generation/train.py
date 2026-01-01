@@ -150,7 +150,7 @@ class TrainingLoop:
         optimizer = InvSqrtScheduledOptim(
             optimizer=object_from_dict(self.cfg.optimizer, params=model.parameters()),
             lr_mul=1.0,
-            d_model=self.cfg.training_args.channels,
+            d_model=self.cfg.training_args.channels * 2,
             n_warmup_steps=self.cfg.training_args.warmup_steps,
         )
 

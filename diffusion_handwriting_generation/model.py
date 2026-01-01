@@ -19,10 +19,10 @@ class EncoderLayer(torch.nn.Module):
         super().__init__()
 
         self.act = torch.nn.SiLU()
-        self.text_pe_gen = PosEmbeddings(d_out, pos_factor=pos_factor)
+        self.text_pe_gen = PosEmbeddings(d_out, pos_factor=1.0)
         self.stroke_pe_gen = PosEmbeddings(d_out, pos_factor=pos_factor)
         self.drop = torch.nn.Dropout(drop_rate)
-        self.lnorm = torch.nn.LayerNorm(d_out, eps=1e-6)
+        self.lnorm = torch.nn.LayerNorm(d_out, eps=1e-6, elementwise_affine=False)
         self.text_dense = torch.nn.Linear(d_inp, d_out)
         self.ffn = ff_network(d_out, d_out, hidden=d_out * 2)
         self.mha = MultiHeadAttention(d_out, num_heads)
@@ -126,7 +126,7 @@ class DiffusionModel(torch.nn.Module):
             strokes: Noisy stroke coordinates [B, T, 2]
             text: Text token indices [B, L]
             sigma: Diffusion timestep embeddings [B, 1]
-            style_vector: Style features from reference image [B, 1, 1280]
+            style_vector: Style features from reference image [B, 14, 1280]
 
         Returns:
             Tuple of (predicted_noise, pen_lift_probs, None)

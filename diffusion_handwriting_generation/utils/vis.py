@@ -19,12 +19,14 @@ def show_strokes(
     prev_ind = 0
     for ind, is_end in enumerate(pen_lifts):
         if is_end:
+            # Exclude the current point 'ind' from the line
+            # because the stroke leading to 'ind' is a pen-up move (jump)
             plt.plot(
-                positions[0][prev_ind : ind + 1],
-                positions[1][prev_ind : ind + 1],
+                positions[0][prev_ind:ind],
+                positions[1][prev_ind:ind],
                 color="black",
             )
-            prev_ind = ind + 1
+            prev_ind = ind
 
     if name:
         plt.savefig(f"./{name}.png", bbox_inches="tight")
