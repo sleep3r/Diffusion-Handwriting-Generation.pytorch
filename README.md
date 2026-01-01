@@ -5,7 +5,6 @@
 <b>Diffusion Model for Handwriting Generation</b>
 
 [![CodeFactor](https://www.codefactor.io/repository/github/sleep3r/Diffusion-Handwriting-Generation.pytorch/badge)](https://www.codefactor.io/repository/github/sleep3r/Diffusion-Handwriting-Generation.pytorch)
-[![python](https://img.shields.io/badge/python_3.10-passing-success)](https://github.com/sleep3r/Diffusion-Handwriting-Generation.pytorch/badge.svg?branch=main&event=push)
 </div>
 
 ----
